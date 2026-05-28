@@ -1,0 +1,25 @@
+# Exclude the entire native Android project from web deployment
+frontend/android/
+**/android/**
+
+# Exclude backend
+backend/
+
+# Exclude build artifacts and caches
+**/node_modules/**
+**/dist/**
+**/dist-ssr/**
+**/.gradle/**
+**/build/**
+**/.vercel/**
+
+# Exclude heavy binaries
+*.apk
+*.aab
+*.jks
+*.jar
+*.flat
+
+# Specific large files
+**/ambient.mp3
+!frontend/public/ambient.mp3

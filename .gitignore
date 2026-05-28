@@ -1,0 +1,22 @@
+# Standard excludes
+node_modules/
+dist/
+build/
+.gradle/
+.vercel
+.env
+.env.local
+
+# Android build artifacts
+*.apk
+*.aar
+*.aab
+*.jks
+local.properties
+
+# Project specific
+backend/node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/android/
+*.log

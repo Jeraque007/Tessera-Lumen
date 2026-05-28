@@ -1,0 +1,23 @@
+# Native Android project (Huge - exclude from web deployment)
+android/
+**/android/**
+
+# Build and local state
+dist/
+dist-ssr/
+node_modules/
+.gradle/
+build/
+.vercel/
+
+# Artifacts
+*.apk
+*.aab
+*.jks
+*.jar
+*.flat
+
+# Duplicate audio files
+# We only want frontend/public/ambient.mp3 to be included
+**/ambient.mp3
+!public/ambient.mp3

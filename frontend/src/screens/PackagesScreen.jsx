@@ -17,12 +17,12 @@ function PkgCard({ pkg, selected, onSelect }) {
           : "border-white/10 bg-white/4 hover:border-[#D4AF37]/35 hover:bg-white/7"
       ].join(" ")}
     >
-      <div className="flex justify-between items-start gap-3">
+      <div className="flex justify-between items-center gap-3">
         <div className="flex-1 min-w-0">
           <p className="font-cinzel text-sm text-white leading-snug">{pkg.name}</p>
           <p className="font-cormorant text-sm text-white italic mt-1">{pkg.desc}</p>
         </div>
-        <span className="font-cinzel text-[#D4AF37] text-sm shrink-0 mt-0.5">{pkg.price}</span>
+        <div className="animate-glow-pulse" style={{ border:"1.5px solid rgba(212,175,55,0.6)", borderRadius:"10px", padding:"8px 14px", background:"linear-gradient(135deg, rgba(10,12,26,0.9), rgba(26,21,53,0.8))", flexShrink:0, textAlign:"center", minWidth:"72px" }}><span className="font-cinzel font-bold" style={{ fontSize:"clamp(0.75rem,2.5vw,0.85rem)", color:"#f0d060", letterSpacing:"0.03em", textShadow:"0 0 8px rgba(212,175,55,0.5)" }}>{pkg.price}</span></div>
       </div>
     </button>
   );

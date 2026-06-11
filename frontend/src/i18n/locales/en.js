@@ -1,4 +1,4 @@
-﻿export default {
+export default {
   // Global
   appName: "Tessera Lumen",
   sacredSpace: "Sacred Space",
@@ -30,6 +30,7 @@
   intentionTitle: "Focus Your Energy",
   intentionBody: "Focus your intention. When ready, allow the cards to reveal your message.",
   intentionBtn: "Ready",
+  intentionCards: { family: "Family", love: "Love", path: "Path", career: "Career", relocation: "Relocation", lovequery: "Does He/She\nLove Me?", marriage: "Marriage", other: "Other" },
   intentions: [
     "Family", "Love", "Work", "Career", "Life in general",
     "A move", "Should I stay", "Does he or she love me", "Will I get married"
@@ -117,10 +118,10 @@
   languageLabel: "Language",
   languages: {
     en: "English",
-    es: "EspaÃ±ol",
-    fr: "FranÃ§ais",
+    es: "EspaÃƒÂ±ol",
+    fr: "FranÃƒÂ§ais",
     de: "Deutsch",
-    pt: "PortuguÃªs",
+    pt: "PortuguÃƒÂªs",
   },
 };
 

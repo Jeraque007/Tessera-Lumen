@@ -1,9 +1,9 @@
-﻿// frontend/src/utils/payfast.js
+import { apiUrl } from "./apiBase.js";
+// frontend/src/utils/payfast.js
 // PayFast payment utility  frontend
 // Calls /api/payfast/initiate to get signed payment data
 // Then launches PayFast in an external browser via a relay page
 
-import { Browser } from "@capacitor/browser";
 
 // ZAR price mapping for each package
 export const PACKAGE_PRICES_ZAR = {
@@ -17,7 +17,7 @@ export const PACKAGE_PRICES_ZAR = {
 
 // Standard package payment (subscriptions + one-time readings)
 export async function initiatePayFastPayment(pkg, user) {
-  const res = await fetch("/api/payfast/initiate", {
+  const res = await fetch(apiUrl("/api/payfast/initiate"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -31,17 +31,28 @@ export async function initiatePayFastPayment(pkg, user) {
   }
   const { paymentUrl, fields } = await res.json();
 
-  // Use relay URL to bridge GET to POST for external browser launch
-  // This prevents app crashes caused by internal WebView navigation
+  // Build relay URL
   const query = new URLSearchParams({ url: paymentUrl, ...fields }).toString();
-  const relayUrl = `${window.location.origin}/api/payfast/relay?${query}`;
+  const relayUrl = `${window.Capacitor?.isNativePlatform?.() ? "https://app.963.co.za" : window.location.origin}/api/payfast/relay?${query}`;
 
-  await Browser.open({ url: relayUrl });
+  console.log("[Payment] Browser:", navigator.userAgent);
+  console.log("[Payment] Initiating redirect to relay:", relayUrl.substring(0, 80) + "...");
+  console.log("[Payment] Timestamp:", new Date().toISOString());
+
+  // On native (Capacitor): use Browser plugin to open externally
+  // On web: navigate current window directly (avoids popup blockers in DuckDuckGo/Safari)
+  if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+    const { Browser } = await import("@capacitor/browser");
+    await Browser.open({ url: relayUrl });
+  } else {
+    // Direct navigation - no popup, works in all browsers including DuckDuckGo
+    window.location.href = relayUrl;
+  }
 }
 
 // Deeper reading one-time $44 payment
 export async function initiateDeeperPayment(user) {
-  const res = await fetch("/api/payfast/initiate", {
+  const res = await fetch(apiUrl("/api/payfast/initiate"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -62,15 +73,22 @@ export async function initiateDeeperPayment(user) {
   const { paymentUrl, fields } = await res.json();
 
   const query = new URLSearchParams({ url: paymentUrl, ...fields }).toString();
-  const relayUrl = `${window.location.origin}/api/payfast/relay?${query}`;
+  const relayUrl = `${window.Capacitor?.isNativePlatform?.() ? "https://app.963.co.za" : window.location.origin}/api/payfast/relay?${query}`;
 
-  await Browser.open({ url: relayUrl });
+  console.log("[Payment:Deeper] Initiating redirect");
+
+  if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+    const { Browser } = await import("@capacitor/browser");
+    await Browser.open({ url: relayUrl });
+  } else {
+    window.location.href = relayUrl;
+  }
 }
 
 // Fetch live USD/ZAR rate from our backend
 export async function fetchZARRate() {
   try {
-    const res = await fetch("/api/fx/rate");
+    const res = await fetch(apiUrl("/api/fx/rate"));
     if (!res.ok) return { rate: 18.80, fallback: true };
     return await res.json();
   } catch (_) {

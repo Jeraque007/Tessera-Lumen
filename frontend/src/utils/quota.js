@@ -1,4 +1,5 @@
-﻿// frontend/src/utils/quota.js
+import { apiUrl } from "./apiBase.js";
+// frontend/src/utils/quota.js
 // Frontend quota management
 // Checks daily + monthly limits before allowing a reading
 // Deducts 1 read after successful reveal
@@ -6,7 +7,7 @@
 export async function checkQuota(email) {
   if (!email) return { allowed: true };
   try {
-    const res = await fetch(`/api/subscription/quota?email=${encodeURIComponent(email)}`);
+    const res = await fetch(apiUrl(`/api/subscription/quota?email=${encodeURIComponent(email)}`));
     if (res.status === 404) return { allowed: true }; // no subscription = one-time, allow
     if (!res.ok) return { allowed: true };            // fail open on server error
 
@@ -49,7 +50,7 @@ export async function checkQuota(email) {
 export async function deductRead(email) {
   if (!email) return { success: true };
   try {
-    const res = await fetch("/api/subscription/quota", {
+    const res = await fetch(apiUrl("/api/subscription/quota"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, action: "deduct" }),

@@ -1,5 +1,7 @@
-﻿import express from "express";
+import express from "express";
 import cors from "cors";
+import crypto from "crypto";
+import fetch from "node-fetch";
 import { createRequire } from "module";
 
 // Load .env
@@ -18,6 +20,51 @@ import {
 const app      = express();
 const PORT     = process.env.PORT || 4000;
 const DEEPL_KEY = process.env.DEEPL_API_KEY || "";
+
+const HUAWEI_PUBLIC_KEY = process.env.HUAWEI_PUBLIC_KEY;
+
+function verifyHuaweiSignature(data, signature) {
+  if (!HUAWEI_PUBLIC_KEY) {
+    console.warn("[HMS] HUAWEI_PUBLIC_KEY not set. Skipping verification (DEV ONLY).");
+    return true;
+  }
+  try {
+    const formattedKey = `-----BEGIN PUBLIC KEY-----\n${HUAWEI_PUBLIC_KEY.match(/.{1,64}/g).join("\n")}\n-----END PUBLIC KEY-----`;
+    const verifier = crypto.createVerify("SHA256");
+    verifier.update(data);
+    return verifier.verify(formattedKey, signature, "base64");
+  } catch (err) {
+    console.error("[HMS] Verification error:", err.message);
+    return false;
+  }
+}
+
+//  Zoho OAuth Management
+let zohoAccessToken = process.env.ZOHO_ACCESS_TOKEN;
+
+async function refreshZohoToken() {
+  const clientId = process.env.ZOHO_CLIENT_ID;
+  const clientSecret = process.env.ZOHO_CLIENT_SECRET;
+  const refreshToken = process.env.ZOHO_REFRESH_TOKEN;
+
+  if (!clientId || !clientSecret || !refreshToken) return null;
+
+  try {
+    const res = await fetch(`https://accounts.zoho.com/oauth/v2/token?refresh_token=${refreshToken}&client_id=${clientId}&client_secret=${clientSecret}&grant_type=refresh_token`, {
+      method: "POST",
+    });
+    const data = await res.json();
+    if (data.access_token) {
+      zohoAccessToken = data.access_token;
+      console.log("[Zoho] Token refreshed successfully");
+      return zohoAccessToken;
+    }
+    console.error("[Zoho] Refresh failed:", data);
+  } catch (err) {
+    console.error("[Zoho] Refresh error:", err);
+  }
+  return null;
+}
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
@@ -49,20 +96,32 @@ app.post("/api/crm", async (req, res) => {
 
   if (error) {
     console.error("[CRM] upsert failed:", error.message);
-    // Still return ok  don't block the user flow on a DB write failure
   }
 
-  // Optional Zoho CRM sync (fire-and-forget)
-  const zohoToken = process.env.ZOHO_ACCESS_TOKEN;
-  if (zohoToken) {
-    fetch("https://www.zohoapis.com/crm/v2/Leads", {
-      method: "POST",
-      headers: {
-        Authorization: `Zoho-oauthtoken ${zohoToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ data: [{ Last_Name: name, Email: email }] }),
-    }).catch(() => {});
+  // Zoho CRM sync
+  if (zohoAccessToken) {
+    const sendToZoho = async (token) => {
+      const response = await fetch("https://www.zohoapis.com/crm/v2/Leads", {
+        method: "POST",
+        headers: {
+          Authorization: `Zoho-oauthtoken ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ data: [{ Last_Name: name || "Unknown", Email: email }] }),
+      });
+      return response;
+    };
+
+    let response = await sendToZoho(zohoAccessToken);
+
+    // If unauthorized, attempt one refresh
+    if (response.status === 401) {
+      console.log("[Zoho] Access token expired, refreshing...");
+      const newToken = await refreshZohoToken();
+      if (newToken) {
+        response = await sendToZoho(newToken);
+      }
+    }
   }
 
   res.json({ ok: true });
@@ -72,8 +131,15 @@ app.post("/api/crm", async (req, res) => {
 app.post("/api/huawei/verify", async (req, res) => {
   const { purchaseData, signature, email, name } = req.body;
 
-  if (!purchaseData || !email) {
-    return res.status(400).json({ error: "purchaseData and email required" });
+  if (!purchaseData || !signature || !email) {
+    return res.status(400).json({ error: "purchaseData, signature and email required" });
+  }
+
+  // Verify signature
+  const isValid = verifyHuaweiSignature(purchaseData, signature);
+  if (!isValid) {
+    console.error("[Huawei Verify] Invalid signature");
+    return res.status(401).json({ error: "Invalid signature" });
   }
 
   try {
@@ -104,7 +170,7 @@ app.post("/api/huawei/verify", async (req, res) => {
     } else if (productId === "20.Readings_Month") {
       readsPerDay = 2;
       isSubscription = true;
-    } else if (productId === "30.Readings_Month") {
+    } else if (productId === "30.Readings_Month1") {
       readsPerDay = 3;
       isSubscription = true;
     }

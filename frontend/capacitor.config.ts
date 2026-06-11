@@ -1,4 +1,4 @@
-﻿import { CapacitorConfig } from "@capacitor/cli";
+import { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   // Application ID  matches android/app/build.gradle applicationId
@@ -20,9 +20,8 @@ const config: CapacitorConfig = {
 
   android: {
     allowMixedContent: false,
-    captureInput: true,
-    // Set to true during development, false for production release
-    webContentsDebuggingEnabled: false,
+    // DEV MODE: set to false for production/AppGallery release builds
+    webContentsDebuggingEnabled: true,
   },
 
   plugins: {

@@ -1,148 +1,148 @@
 import { AppProvider, useApp } from "./context/AppContext.jsx";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 import { App as CapApp } from "@capacitor/app";
-import WelcomeScreen from "./screens/WelcomeScreen.jsx";
-import DetailsScreen from "./screens/DetailsScreen.jsx";
-import IntentionScreen from "./screens/IntentionScreen.jsx";
-import PackagesScreen from "./screens/PackagesScreen.jsx";
-import PaymentScreen from "./screens/PaymentScreen.jsx";
-import RevealScreen from "./screens/RevealScreen.jsx";
-import DeeperScreen from "./screens/DeeperScreen.jsx";
-import TermsScreen from "./screens/legal/TermsScreen.jsx";
-import PrivacyScreen from "./screens/legal/PrivacyScreen.jsx";
-import LicensingScreen from "./screens/legal/LicensingScreen.jsx";
 import AppFooter from "./components/AppFooter.jsx";
+import PrivacyConsent from "./components/PrivacyConsent.jsx";
 
-const LEGAL_SCREENS = ["terms", "privacy", "licensing"];
+// Lazy-loaded screens - only loaded when navigated to
+const WelcomeScreen = lazy(() => import("./screens/WelcomeScreen.jsx"));
+const DetailsScreen = lazy(() => import("./screens/DetailsScreen.jsx"));
+const IntentionScreen = lazy(() => import("./screens/IntentionScreen.jsx"));
+const PackagesScreen = lazy(() => import("./screens/PackagesScreen.jsx"));
+const PaymentScreen = lazy(() => import("./screens/PaymentScreen.jsx"));
+const RevealScreen = lazy(() => import("./screens/RevealScreen.jsx"));
+const DeeperScreen = lazy(() => import("./screens/DeeperScreen.jsx"));
+const TermsScreen = lazy(() => import("./screens/legal/TermsScreen.jsx"));
+const PrivacyScreen = lazy(() => import("./screens/legal/PrivacyScreen.jsx"));
+const LicensingScreen = lazy(() => import("./screens/legal/LicensingScreen.jsx"));
+const PaymentSuccessScreen = lazy(() => import("./screens/PaymentSuccessScreen.jsx"));
+const PaymentCancelledScreen = lazy(() => import("./screens/PaymentCancelledScreen.jsx"));
+
+const LEGAL_SCREENS = ["terms", "privacy", "licensing", "payment-success", "payment-cancelled"];
+
+function LoadingFallback() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <div className="w-10 h-10 border-3 border-[#D4AF37]/20 border-t-[#D4AF37] rounded-full animate-spin mb-3"></div>
+      <p className="font-cinzel text-[#D4AF37]/60 text-xs tracking-widest uppercase">Loading...</p>
+    </div>
+  );
+}
 
 function Router() {
   const { screen, goTo, setIsPaid, setDeeperPaid, user, refreshPaymentStatus, paymentLoading, paymentPending, setPaymentPending } = useApp();
-  const audioRef = useRef(null);
-  const [audioReady, setAudioReady] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("paid") || params.get("deeper_paid") || params.get("cancelled") || params.get("deeper_cancelled")) {
+      localStorage.setItem("tl_privacy_accepted", "true");
+      return true;
+    }
+    return localStorage.getItem("tl_privacy_accepted") === "true";
+  });
+
+  // Refs to avoid stale closures in Capacitor listeners
+  const userRef = useRef(user);
+  const paymentPendingRef = useRef(paymentPending);
+  const screenRef = useRef(screen);
+  useEffect(() => { userRef.current = user; }, [user]);
+  useEffect(() => { paymentPendingRef.current = paymentPending; }, [paymentPending]);
+  useEffect(() => { screenRef.current = screen; }, [screen]);
+
+  const handlePrivacyAccept = () => {
+    localStorage.setItem("tl_privacy_accepted", "true");
+    setPrivacyAccepted(true);
+  };
 
   const processDeepLink = useCallback(async (urlStr) => {
     try {
-      console.log("--- [EVIDENCE] 4 & 5. STATE AFTER RETURN ---");
-      console.log("Deep Link URL:", urlStr);
-      console.log("Current Context User:", JSON.stringify(user));
-
       const normalized = urlStr.replace("tessera://app", "https://tessera.app");
       const url = new URL(normalized);
-      const isPaidParam = url.searchParams.get('paid') === '1';
-      const cancelledParam = url.searchParams.get('cancelled') === '1';
-
+      const isPaidParam = url.searchParams.get("paid") === "1";
+      const cancelledParam = url.searchParams.get("cancelled") === "1";
       if (isPaidParam || cancelledParam) {
-        let emailToVerify = user?.email;
-        if (!emailToVerify) {
-           const savedUser = JSON.parse(localStorage.getItem("tl_user") || "{}");
-           emailToVerify = savedUser.email;
-        }
-
+        let emailToVerify = userRef.current?.email || JSON.parse(localStorage.getItem("tl_user") || "{}").email;
         if (isPaidParam && emailToVerify) {
-          console.log("Verifying payment status with server for:", emailToVerify);
           const status = await refreshPaymentStatus(emailToVerify);
-
-          if (status?.isPaid || status?.deeperPaid) {
-            setPaymentPending(null); // Success! Clear pending state
-          }
+          if (status?.isPaid || status?.deeperPaid) setPaymentPending(null);
         }
-
-        if (cancelledParam) {
-           setPaymentPending(null); // Cancelled, clear state
-        }
-
-        // Navigation based on URL or pending state
-        if (url.pathname.includes('deeper') || paymentPending?.type === 'deeper') {
-          console.log("Navigating to DEEPER");
-          goTo('deeper');
-        } else {
-          console.log("Navigating to REVEAL");
-          goTo('reveal');
-        }
-      } else {
-        console.log("Reason: Deep link detected but no paid/cancelled param");
-      }
-      console.log("------------------------------------------");
-    } catch (e) {
-      console.error("[EVIDENCE] Deep link error:", e);
-    }
-  }, [goTo, user, refreshPaymentStatus, paymentPending, setPaymentPending]);
-
-  // Restore session from paymentPending on cold start
-  useEffect(() => {
-    if (screen === "welcome" && paymentPending) {
-       console.log("Detected pending payment on cold start. Restoring screen.");
-       if (paymentPending.type === "deeper") {
+        if (cancelledParam) setPaymentPending(null);
+        if (url.pathname.includes("deeper") || paymentPendingRef.current?.type === "deeper") {
           goTo("deeper");
-       } else {
+        } else {
           goTo("reveal");
-       }
-    }
-  }, []);
-
-  useEffect(() => {
-    // 1. Audio Logic
-    if (!window.Capacitor) {
-      const unlockAudio = () => {
-        if (audioRef.current && !audioReady) {
-          audioRef.current.volume = 0.5;
-          audioRef.current.play()
-            .then(() => setAudioReady(true))
-            .catch(e => console.warn("Web audio blocked:", e));
         }
-      };
-      window.addEventListener('click', unlockAudio);
-      window.addEventListener('touchstart', unlockAudio);
-      return () => {
-        window.removeEventListener('click', unlockAudio);
-        window.removeEventListener('touchstart', unlockAudio);
-      };
-    }
-
-    // 2. Web-to-App Bridge
-    if (!window.Capacitor) {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('paid') === '1' || params.get('cancelled') === '1') {
-        console.log("[EVIDENCE] Web redirect detected. Parameters:", window.location.search);
-        window.location.href = `tessera://app${window.location.pathname}${window.location.search}`;
       }
+    } catch (e) {
+      console.error("[DeepLink] Error:", e);
     }
+  }, [goTo, refreshPaymentStatus, setPaymentPending]);
 
-    // 3. Capacitor Native Listeners
-    if (window.Capacitor) {
-      CapApp.getLaunchUrl().then(ret => {
-        if (ret?.url) {
-          console.log("[EVIDENCE] App launched via URL:", ret.url);
-          processDeepLink(ret.url);
-        }
-      });
+  // 1. URL path routing (direct page access)
+  useEffect(() => {
+    const path = window.location.pathname;
+    if (path === "/privacy") goTo("privacy");
+    else if (path === "/payment-success") goTo("payment-success");
+    else if (path === "/payment-cancelled") goTo("payment-cancelled");
+  }, [goTo]);
 
-      const sub = CapApp.addListener('appUrlOpen', (data) => {
-        console.log("[EVIDENCE] App resumed via URL:", data.url);
-        processDeepLink(data.url);
-      });
-      return () => sub.remove();
+  // 2. Payment return - clean URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("paid") || params.get("deeper_paid") || params.get("cancelled") || params.get("deeper_cancelled")) {
+      console.log("[Payment:Return] Cleaning URL:", window.location.search);
+      window.history.replaceState({}, "", window.location.pathname);
+      if (params.get("paid") === "1") setIsPaid(true);
+      if (params.get("deeper_paid") === "1") setDeeperPaid(true);
     }
-  }, [processDeepLink, audioReady]);
+  }, [setIsPaid, setDeeperPaid]);
 
-  const screens = {
-    welcome:   <WelcomeScreen />,
-    details:   <DetailsScreen />,
-    intention: <IntentionScreen />,
-    packages:  <PackagesScreen />,
-    payment:   <PaymentScreen />,
-    reveal:    <RevealScreen />,
-    deeper:    <DeeperScreen />,
-    terms:     <TermsScreen onBack={() => goTo("welcome")} />,
-    privacy:   <PrivacyScreen onBack={() => goTo("welcome")} />,
-    licensing: <LicensingScreen onBack={() => goTo("welcome")} />,
+  // 3. Capacitor native listeners (deep links + back button)
+  useEffect(() => {
+    if (!window.Capacitor?.isNativePlatform?.()) return;
+
+    const listeners = [];
+
+    CapApp.addListener("backButton", () => {
+      if (screenRef.current === "welcome") {
+        CapApp.exitApp();
+      } else {
+        goTo("welcome");
+      }
+    }).then(l => listeners.push(l)).catch(() => {});
+
+    CapApp.getLaunchUrl().then(ret => {
+      if (ret?.url) processDeepLink(ret.url);
+    }).catch(() => {});
+
+    CapApp.addListener("appUrlOpen", (data) => {
+      processDeepLink(data.url);
+    }).then(l => listeners.push(l)).catch(() => {});
+
+    return () => {
+      listeners.forEach(l => { if (l?.remove) l.remove(); });
+    };
+  }, [goTo, processDeepLink]);
+
+  const renderScreen = () => {
+    switch (screen) {
+      case "welcome": return <WelcomeScreen />;
+      case "details": return <DetailsScreen />;
+      case "intention": return <IntentionScreen />;
+      case "packages": return <PackagesScreen />;
+      case "payment": return <PaymentScreen />;
+      case "reveal": return <RevealScreen />;
+      case "deeper": return <DeeperScreen />;
+      case "terms": return <TermsScreen onBack={() => goTo("welcome")} />;
+      case "privacy": return <PrivacyScreen onBack={() => goTo("welcome")} />;
+      case "licensing": return <LicensingScreen onBack={() => goTo("welcome")} />;
+      case "payment-success": return <PaymentSuccessScreen />;
+      case "payment-cancelled": return <PaymentCancelledScreen />;
+      default: return <WelcomeScreen />;
+    }
   };
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      {!window.Capacitor && (
-        <audio ref={audioRef} src="/ambient.mp3" loop preload="auto" style={{ display: 'none' }} />
-      )}
       <div className="app-bg" />
       <div className="nebula-overlay" />
       <div className="starfield" />
@@ -154,13 +154,13 @@ function Router() {
             <p className="font-cinzel text-[#D4AF37] text-xs tracking-widest uppercase animate-pulse">Verifying Payment...</p>
           </div>
         ) : (
-          screens[screen] || <WelcomeScreen />
+          <Suspense fallback={<LoadingFallback />}>
+            {renderScreen()}
+          </Suspense>
         )}
         {!LEGAL_SCREENS.includes(screen) && !paymentLoading && <AppFooter />}
       </div>
-      {!window.Capacitor && !audioReady && (
-        <div className="fixed bottom-4 left-4 z-50 text-[10px] text-[#D4AF37]/40 uppercase tracking-widest font-cinzel animate-pulse pointer-events-none">Tap anywhere for sound</div>
-      )}
+      {!privacyAccepted && screen !== "privacy" && <PrivacyConsent onAccept={handlePrivacyAccept} onReject={() => { window.history.back(); }} />}
     </div>
   );
 }

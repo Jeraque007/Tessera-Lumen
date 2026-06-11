@@ -1,10 +1,17 @@
-﻿import LegalPage, { Section, P, Ul, Li } from "./LegalPage.jsx";
+import LegalPage, { Section, P, Ul, Li } from "./LegalPage.jsx";
 
 const CONTACT_EMAIL = "holistic@963.co.za";
 
 export default function PrivacyScreen({ onBack }) {
   return (
     <LegalPage title="Privacy Policy" subtitle="Last updated: January 2026" onBack={onBack}>
+
+      <Section title="Application and Developer Information">
+        <P><strong>Application Name:</strong> Tessera Lumen</P>
+        <P><strong>Developer:</strong> Sylvana Anne Ellis</P>
+        <P><strong>Contact:</strong> holistic@963.co.za</P>
+        <P>This privacy policy applies to the Tessera Lumen mobile application and web application (app.963.co.za), developed and operated by Sylvana Anne Ellis.</P>
+      </Section>
 
       <Section title="1. Information We Collect">
         <P>When you use Tessera Lumen, we collect the following information:</P>
@@ -87,6 +94,21 @@ export default function PrivacyScreen({ onBack }) {
         <P>For privacy-related enquiries, data requests, or to exercise your rights, please contact us directly:</P>
         <P><a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "#D4AF37", fontFamily: "Cinzel, serif", letterSpacing: "0.1em" }}>{CONTACT_EMAIL}</a></P>
         <P>We aim to respond to all enquiries within 2 business days.</P>
+      </Section>
+
+    <Section title="Chinese Version">
+        <P style={{ fontStyle: "normal" }}>
+          <strong>应用名称：</strong>Tessera Lumen<br/>
+          <strong>开发者：</strong>Sylvana Anne Ellis<br/>
+          <strong>联系方式：</strong>holistic@963.co.za<br/><br/>
+          本隐私政策适用于Tessera Lumen移动应用程序和网络应用程序（app.963.co.za），由Sylvana Anne Ellis开发和运营。<br/><br/>
+          <strong>我们收集的信息：</strong>姓名、电子邮件地址、出生日期（可选）。这些信息仅用于个性化您的阅读体验。<br/><br/>
+          <strong>数据使用：</strong>我们使用您的信息提供个性化的塔罗牌阅读服务。我们不会出售或分享您的个人信息给第三方用于营销目的。<br/><br/>
+          <strong>支付处理：</strong>所有支付通过PayFast处理，这是一个符合PCI-DSS标准的支付网关。Tessera Lumen不存储、处理或访问您的银行卡详细信息。<br/><br/>
+          <strong>数据存储：</strong>您的数据安全地存储在Supabase（云数据库）中，并受行业标准加密保护。<br/><br/>
+          <strong>您的权利：</strong>您可以随时通过联系holistic@963.co.za请求删除您的数据。<br/><br/>
+          <strong>同意：</strong>使用本应用即表示您同意本隐私政策。如果您不同意，请停止使用本应用。
+        </P>
       </Section>
 
     </LegalPage>

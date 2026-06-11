@@ -1,4 +1,4 @@
-﻿// frontend/api/payfast/initiate.js
+// frontend/api/payfast/initiate.js
 // Vercel serverless function  generates signed PayFast payment data
 
 import crypto from "crypto";
@@ -70,11 +70,11 @@ export default async function handler(req, res) {
   pfData.merchant_key = MERCHANT_KEY.trim();
 
   pfData.return_url = isDeeper
-    ? `${SITE_URL}/deeper?paid=1`
-    : `${SITE_URL}/reveal?paid=1`;
+    ? `${SITE_URL}/?deeper_paid=1`
+    : `${SITE_URL}/?paid=1`;
   pfData.cancel_url = isDeeper
-    ? `${SITE_URL}/deeper?cancelled=1`
-    : `${SITE_URL}/payment?cancelled=1`;
+    ? `${SITE_URL}/?deeper_cancelled=1`
+    : `${SITE_URL}/?cancelled=1`;
   pfData.notify_url = `${SITE_URL}/api/payfast/notify`;
 
   const nameParts = (user.name || "Seeker").trim().split(" ");

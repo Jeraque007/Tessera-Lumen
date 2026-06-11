@@ -1,4 +1,4 @@
-﻿export default {
+export default {
   appName: "Tessera Lumen",
   sacredSpace: "Espaco Sagrado",
   returnHome: "Voltar ao Inicio",
@@ -23,6 +23,7 @@
   intentionTitle: "Foque sua Energia",
   intentionBody: "Foque sua intencao. Quando estiver pronto, permita que as cartas revelem sua mensagem.",
   intentionBtn: "Pronto",
+  intentionCards: { family: "Familia", love: "Amor", path: "Caminho", career: "Carreira", relocation: "Mudanca", lovequery: "Ele/ela\nme ama?", marriage: "Casamento", other: "Outro" },
   intentions: ["Familia","Amor","Trabalho","Carreira","A vida em geral","Uma mudanca","Devo ficar?","Ele/ela me ama?","Vou me casar?"],
   packagesTag: "Sua Leitura",
   packagesTitle: "Escolha sua Leitura",

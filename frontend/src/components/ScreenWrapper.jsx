@@ -4,7 +4,7 @@ import { useApp } from "../context/AppContext.jsx";
 
 export default function ScreenWrapper({ children, className = "", hideLogo = false }) {
   const ref = useRef(null);
-  const { screen } = useApp();
+  const { screen, goTo } = useApp();
   const isWelcome = screen === "welcome";
 
   useEffect(() => { if (ref.current) ref.current.scrollTo({ top: 0 }); }, []);
@@ -17,7 +17,7 @@ export default function ScreenWrapper({ children, className = "", hideLogo = fal
       {!isWelcome && !hideLogo && (
         <img
           src="/assets/logo.png"
-          alt="Tessera Lumen"
+          alt="Tessera Lumen" title="Tessera Lumen"
           style={{
             position: "absolute",
             top: "20px",

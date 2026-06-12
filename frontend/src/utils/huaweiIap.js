@@ -27,11 +27,16 @@ export async function checkIapEnv() {
 }
 
 export async function buyProduct(productId, type = 0) {
+  if (!window.Capacitor?.isNativePlatform?.()) {
+    throw new Error("HMS IAP is only available on native devices");
+  }
   try {
+    console.log(`[HMS] Initiating buyProduct for ${productId} (type ${type})`);
     const res = await HuaweiIap.buyProduct({ productId, type });
+    if (!res) throw new Error("HMS IAP returned null response");
     return res;
   } catch (e) {
-    console.error("Huawei IAP Purchase error:", e);
+    console.error(`[HMS] Purchase error for ${productId}:`, e);
     throw e;
   }
 }

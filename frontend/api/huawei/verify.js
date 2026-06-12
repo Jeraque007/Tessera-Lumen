@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       "Deep.Dive": 3,
       "10.Readings_Month": 4,
       "20.Readings_Month": 5,
-      "30.Readings_Month": 6,
+      "30.Readings_Month1": 6,
       "Astrological.Chart.Reading": null,
     };
     const planId = planMap[productId] || null;

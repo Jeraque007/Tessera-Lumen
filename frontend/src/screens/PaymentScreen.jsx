@@ -22,6 +22,7 @@ export default function PaymentScreen() {
 
     await processPayment(selectedPackage, user, {
       onSuccess: () => {
+        console.log("PAYMENT SUCCESS CALLBACK FIRED");
         setIsPaid(true);
         setLoading(false);
         goTo("reveal");
@@ -29,9 +30,7 @@ export default function PaymentScreen() {
       onError: (msg) => {
         setError(msg);
         setLoading(false);
-        setPaymentPending(null);
-      },
-      onPending: (data) => setPaymentPending(data),
+      }
     });
   };
 

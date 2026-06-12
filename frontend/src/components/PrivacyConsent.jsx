@@ -23,9 +23,7 @@ export default function PrivacyConsent({ onAccept, onReject, onViewPolicy }) {
         alignItems: "flex-end",
         justifyContent: "center",
         paddingBottom: "env(safe-area-inset-bottom, 24px)",
-        background: "rgba(6,8,16,0.85)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
+        background: "rgba(6,8,16,0.98)",
         opacity: fading ? 0 : 1,
         transition: "opacity 0.4s ease",
       }}
@@ -34,7 +32,7 @@ export default function PrivacyConsent({ onAccept, onReject, onViewPolicy }) {
         style={{
           width: "calc(100% - 40px)",
           maxWidth: "400px",
-          background: "rgba(10,12,26,0.95)",
+          background: "#0a0c1a",
           border: "1px solid rgba(212,175,55,0.3)",
           borderRadius: "20px",
           padding: "28px 24px 24px",

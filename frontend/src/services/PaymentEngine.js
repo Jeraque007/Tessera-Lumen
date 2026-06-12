@@ -14,7 +14,6 @@ const PRODUCT_MAP = {
   6: { id: "30.Readings_Month1", type: 2 },
 };
 
-// HMS error codes that mean "user cancelled" - should NOT fall back to PayFast
 const HMS_USER_CANCELLED_CODES = [60051, 60053, 60056];
 
 function isUserCancellation(err) {
@@ -24,48 +23,121 @@ function isUserCancellation(err) {
   return msg.includes("cancel") || msg.includes("60051") || msg.includes("60053") || msg.includes("60056");
 }
 
+async function fetchWithRetry(url, options, retries = 2, timeoutMs = 15000) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timer);
+      return res;
+    } catch (err) {
+      console.warn("[PaymentRouter] Fetch attempt " + (attempt + 1) + "/" + (retries + 1) + " failed:", err.message);
+      if (attempt === retries) throw err;
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
+  }
+}
+async function verifyWithBackend(purchase, user) {
+  // Matches the worker name 'tessera-lumen' in your Cloudflare dashboard
+  const url = "https://tessera-lumen.jeraque007.workers.dev/";
+  console.log("[PaymentRouter] VERIFY URL:", url);
+  try {
+    const res = await fetchWithRetry(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        purchaseData: purchase.purchaseData,
+        signature: purchase.signature,
+        email: user?.email,
+        name: user?.name
+      })
+    });
+    console.log("[PaymentRouter] VERIFY STATUS:", res.status);
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.warn("[PaymentRouter] VERIFY ERROR: Server returned", res.status, body, "| URL:", url);
+      return { verified: false, reason: "HTTP " + res.status };
+    }
+    return { verified: true };
+  } catch (err) {
+    console.error("[PaymentRouter] VERIFY ERROR:", err.message, "| URL:", url);
+    return { verified: false, reason: err.message };
+  }
+}
+
+function queuePendingVerification(purchase, user, productId) {
+  try {
+    const pending = JSON.parse(localStorage.getItem("tl_pending_verifications") || "[]");
+    pending.push({
+      purchaseData: purchase.purchaseData,
+      signature: purchase.signature,
+      email: user?.email,
+      name: user?.name,
+      productId,
+      timestamp: Date.now()
+    });
+    localStorage.setItem("tl_pending_verifications", JSON.stringify(pending));
+    console.log("[PaymentRouter] Queued for later verification:", productId);
+  } catch (_) {}
+}
 export async function processPayment(selectedPackage, user, callbacks) {
   const { onSuccess, onError, onPending } = callbacks;
 
-  // Android Huawei devices: try Huawei IAP first
   if (isHmsDevice()) {
     try {
       const product = PRODUCT_MAP[selectedPackage.id];
       if (product) {
         console.log("[PaymentRouter] Trying Huawei IAP:", product.id);
+
+        // STEP 1: Purchase must succeed and return valid token
         const purchase = await buyProduct(product.id, product.type);
-        const verifyRes = await fetch(apiUrl("/api/huawei/verify"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            purchaseData: purchase.purchaseData,
-            signature: purchase.signature,
-            email: user?.email,
-            name: user?.name
-          })
-        });
-        if (!verifyRes.ok) throw new Error("Verification failed");
-        if (product.type === 0) {
-          const data = JSON.parse(purchase.purchaseData);
-          await consumePurchase(data.purchaseToken);
+
+        // STEP 2: Validate purchase token exists (proof of payment)
+        if (!purchase || !purchase.purchaseData) {
+          console.error("[PaymentRouter] No purchaseData returned - no unlock");
+          onError("Purchase failed - no token received");
+          return;
         }
-        console.log("[PaymentRouter] Huawei IAP success");
+        console.log("[PaymentRouter] Valid purchase token received for:", product.id);
+
+        // STEP 3: Backend verification (fire-and-forget - token is proof)
+        verifyWithBackend(purchase, user).then(({ verified, reason }) => {
+          if (!verified) {
+            queuePendingVerification(purchase, user, product.id);
+            console.warn("[PaymentRouter] Verify queued for later. Reason:", reason);
+          } else {
+            console.log("[PaymentRouter] Backend verified successfully");
+          }
+        });
+
+        // STEP 4: Consume consumables
+        if (product.type === 0) {
+          try {
+            const data = JSON.parse(purchase.purchaseData);
+            await consumePurchase(data.purchaseToken);
+          } catch (consumeErr) {
+            console.warn("[PaymentRouter] Consume failed (non-fatal):", consumeErr.message);
+          }
+        }
+
+        // STEP 5: Unlock - Persist locally FIRST to survive crashes/reloads
+        console.log("[PaymentRouter] HMS success. Persisting and unlocking.");
+        localStorage.setItem("tl_is_paid", "true");
         onSuccess();
         return;
       }
     } catch (hmsErr) {
-      // If user cancelled the purchase dialog, stop here - don't fall back to PayFast
+      // buyProduct failed - NO token - NEVER unlock
       if (isUserCancellation(hmsErr)) {
-        console.log("[PaymentRouter] User cancelled HMS purchase");
+        console.log("[PaymentRouter] User cancelled - no token, no unlock");
         onError("Payment cancelled");
         return;
       }
-      // Actual HMS failure - fall back to PayFast
-      console.log("[PaymentRouter] Huawei IAP failed, falling back to PayFast:", hmsErr.message);
+      console.log("[PaymentRouter] HMS failed, falling back to PayFast:", hmsErr.message);
     }
   }
 
-  // All other cases: PayFast
   try {
     if (onPending) onPending({ type: "standard", pkgId: selectedPackage.id, timestamp: Date.now() });
     await initiatePayFastPayment(selectedPackage, user);
@@ -73,40 +145,57 @@ export async function processPayment(selectedPackage, user, callbacks) {
     onError(err.message || "Payment failed");
   }
 }
-
 export async function processDeeperPayment(user, callbacks) {
   const { onSuccess, onError, onPending } = callbacks;
 
   if (isHmsDevice()) {
     try {
       console.log("[PaymentRouter] Trying Huawei IAP for deeper reading");
+
+      // STEP 1: Purchase
       const purchase = await buyProduct("Astrological.Chart.Reading", 0);
-      const verifyRes = await fetch(apiUrl("/api/huawei/verify"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          purchaseData: purchase.purchaseData,
-          signature: purchase.signature,
-          email: user?.email,
-          name: user?.name
-        })
+
+      // STEP 2: Validate token
+      if (!purchase || !purchase.purchaseData) {
+        console.error("[PaymentRouter] Deeper: no purchaseData - no unlock");
+        onError("Purchase failed - no token received");
+        return;
+      }
+      console.log("[PaymentRouter] Deeper purchase token received");
+
+      // STEP 3: Backend verification (fire-and-forget)
+      verifyWithBackend(purchase, user).then(({ verified, reason }) => {
+        if (!verified) {
+          queuePendingVerification(purchase, user, "Astrological.Chart.Reading");
+          console.warn("[PaymentRouter] Deeper verify queued. Reason:", reason);
+        }
       });
-      if (!verifyRes.ok) throw new Error("Verification failed");
-      const data = JSON.parse(purchase.purchaseData);
-      await consumePurchase(data.purchaseToken);
-      console.log("[PaymentRouter] Huawei IAP deeper success");
+
+      // STEP 4: Consume
+      try {
+        const data = JSON.parse(purchase.purchaseData);
+        await consumePurchase(data.purchaseToken);
+      } catch (consumeErr) {
+        console.warn("[PaymentRouter] Deeper consume failed (non-fatal):", consumeErr.message);
+      }
+
+      // STEP 5: Unlock
+      console.log("[PaymentRouter] Deeper HMS success. Token proof valid, verify in background.");
       onSuccess();
       return;
     } catch (hmsErr) {
       if (isUserCancellation(hmsErr)) {
-        console.log("[PaymentRouter] User cancelled HMS deeper purchase");
+        console.log("[PaymentRouter] User cancelled deeper - no token, no unlock");
         onError("Payment cancelled");
         return;
       }
-      console.log("[PaymentRouter] Huawei IAP failed for deeper, falling back:", hmsErr.message);
+      console.error("[PaymentRouter] Deeper HMS failed:", hmsErr.message);
+      onError("Purchase could not be completed. Please try again.");
+      return;
     }
   }
 
+  // Non-HMS devices: PayFast for deeper
   try {
     if (onPending) onPending({ type: "deeper", timestamp: Date.now() });
     await initiateDeeperPayment(user);

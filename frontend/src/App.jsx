@@ -88,11 +88,22 @@ function Router() {
   // 2. Payment return - clean URL params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("paid") || params.get("deeper_paid") || params.get("cancelled") || params.get("deeper_cancelled")) {
+    const hasPaidParam = params.get("paid") === "1" || params.get("deeper_paid") === "1";
+    const hasCancelParam = params.get("cancelled") === "1" || params.get("deeper_cancelled") === "1";
+
+    if (hasPaidParam || hasCancelParam) {
       console.log("[Payment:Return] Cleaning URL:", window.location.search);
       window.history.replaceState({}, "", window.location.pathname);
-      if (params.get("paid") === "1") setIsPaid(true);
-      if (params.get("deeper_paid") === "1") setDeeperPaid(true);
+
+      // Only set states if they aren't already set to prevent re-render loops
+      if (params.get("paid") === "1") {
+        setIsPaid(true);
+        localStorage.setItem("tl_is_paid", "true");
+      }
+      if (params.get("deeper_paid") === "1") {
+        setDeeperPaid(true);
+        localStorage.setItem("tl_deeper_paid", "true");
+      }
     }
   }, [setIsPaid, setDeeperPaid]);
 

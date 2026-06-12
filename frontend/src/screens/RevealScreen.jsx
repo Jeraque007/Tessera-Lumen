@@ -1,3 +1,4 @@
+console.log("REVEAL SCREEN LOADED");
 import { useState, useEffect, useMemo } from "react";
 import ScreenWrapper from "../components/ScreenWrapper.jsx";
 import TpButton from "../components/TpButton.jsx";
@@ -13,12 +14,31 @@ import { renderReadingCard, dispatchExport } from "../utils/readingExport.js";
 export default function RevealScreen() {
   const {
     goTo, user, intention, selectedPackage,
+    isPaid,
     setDrawnCards,
     immutableReadings, setImmutableReadings
   } = useApp();
 
   const { t, i18n } = useTranslation();
+  const [settled, setSettled] = useState(false);
   const hasRenderedReadings = immutableReadings.length > 0 && immutableReadings[0]?.export?.dataUrl;
+
+  // GUARD: Check if user is actually paid with a settle buffer
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const persistedPaid = localStorage.getItem("tl_is_paid") === "true";
+      const isFree = selectedPackage?.type === "free";
+
+      if (!isPaid && !persistedPaid && !isFree) {
+        console.warn("[Reveal] Unpaid access attempt. Redirecting home.");
+        goTo("welcome");
+      } else {
+        setSettled(true);
+      }
+    }, 500); // 500ms buffer to allow context to settle
+    return () => clearTimeout(timer);
+  }, [isPaid, selectedPackage, goTo]);
+
   const [revealed, setRevealed] = useState(!!hasRenderedReadings);
   const [processing, setProcessing] = useState(false);
   const [visibleCount, setVisibleCount] = useState(hasRenderedReadings ? immutableReadings.length : 0);

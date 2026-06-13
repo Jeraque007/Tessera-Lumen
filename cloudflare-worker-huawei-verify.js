@@ -1,164 +1,97 @@
-// Cloudflare Worker: Huawei IAP Purchase Verification
-// Equivalent to Vercel function at /api/huawei/verify
-// Writes to Supabase: payment_log, subscriptions, deeper_readings
+// Cloudflare Worker: Smart Gateway & Huawei Verification
+// Handles Huawei IAP directly and proxies all other /api/* requests to bypass Vercel blocks.
+
+const BACKEND_URL = "https://app.963.co.za";
 
 export default {
-  async fetch(request, env) {
-    // CORS headers for preflight
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey",
+    };
+
     if (request.method === "OPTIONS") {
-      return new Response(null, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type",
-        },
-      });
+      return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    if (request.method !== "POST") {
-      return json({ error: "Method not allowed" }, 405);
+    // ROUTE 1: Huawei Verification (Direct Handle)
+    if (path === "/" || path === "/api/huawei/verify") {
+      return handleHuaweiVerify(request, env, ctx, corsHeaders);
     }
+
+    // ROUTE 2: Proxy all other requests to the main backend (Bypass regional blocks)
+    console.log(`[Proxy] Forwarding ${request.method} ${path} to backend`);
+    const newRequest = new Request(BACKEND_URL + path + url.search, {
+      method: request.method,
+      headers: request.headers,
+      body: request.body,
+    });
 
     try {
-      const { purchaseData, signature, email, name } = await request.json();
-
-      if (!purchaseData) {
-        return json({ error: "purchaseData required" }, 400);
-      }
-
-      const purchase = JSON.parse(purchaseData);
-      const productId = purchase.productId || "";
-      const orderId = purchase.orderId || purchase.purchaseToken || `HMS-${Date.now()}`;
-
-      console.log("[Huawei] Verifying:", productId, "for:", email);
-
-      // Supabase client
-      const supabaseUrl = env.SUPABASE_URL;
-      const supabaseKey = env.SUPABASE_SECRET_KEY;
-      const headers = {
-        "apikey": supabaseKey,
-        "Authorization": `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal",
-      };
-
-      // Duplicate check
-      const dupRes = await fetch(
-        `${supabaseUrl}/rest/v1/payment_log?payment_id=eq.${encodeURIComponent(orderId)}&select=id`,
-        { headers: { ...headers, "Prefer": "return=representation" } }
-      );
-      const dupData = await dupRes.json();
-      if (dupData && dupData.length > 0) {
-        console.log("[Huawei] Duplicate, already logged");
-        return json({ success: true, duplicate: true });
-      }
-
-      // Plan mapping
-      const isSubscription = productId.includes("Readings_Month");
-      const planMap = {
-        "Quick.Insight": 1,
-        "Past.Present.Future": 2,
-        "Deep.Dive": 3,
-        "10.Readings_Month": 4,
-        "20.Readings_Month": 5,
-        "30.Readings_Month1": 6,
-        "Astrological.Chart.Reading": null,
-      };
-      const planId = planMap[productId] || null;
-      const isDeeper = productId === "Astrological.Chart.Reading";
-
-      // Log payment
-      const logRes = await fetch(`${supabaseUrl}/rest/v1/payment_log`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          payment_id: orderId,
-          m_payment_id: `HMS-${productId}-${Date.now()}`,
-          email: email ? email.toLowerCase().trim() : null,
-          name: name || "",
-          amount: purchase.price ? parseFloat(purchase.price) / 100 : 0,
-          status: "COMPLETE",
-          plan_id: planId,
-          item_name: `Tessera Lumen - ${productId}`,
-          is_subscription: isSubscription,
-          raw_payload: { source: "huawei_iap", purchaseData: purchase, signature },
-        }),
+      const response = await fetch(newRequest);
+      const newResponse = new Response(response.body, response);
+      Object.keys(corsHeaders).forEach(k => newResponse.headers.set(k, corsHeaders[k]));
+      return newResponse;
+    } catch (e) {
+      return new Response(JSON.stringify({ error: "Gateway Proxy Error", details: e.message }), {
+        status: 502,
+        headers: { "Content-Type": "application/json", ...corsHeaders }
       });
-      if (!logRes.ok) {
-        const errText = await logRes.text();
-        console.error("[Huawei] payment_log insert failed:", errText);
-      }
-
-      // Activate subscription
-      if (isSubscription && email) {
-        const PLAN_CONFIG = {
-          4: { readsLimit: 10, readsPerDay: 1 },
-          5: { readsLimit: 20, readsPerDay: 2 },
-          6: { readsLimit: 30, readsPerDay: 3 },
-        };
-        const cfg = PLAN_CONFIG[planId] || {};
-        const renewalDate = new Date();
-        renewalDate.setMonth(renewalDate.getMonth() + 1);
-
-        const subRes = await fetch(
-          `${supabaseUrl}/rest/v1/subscriptions?on_conflict=email`,
-          {
-            method: "POST",
-            headers: { ...headers, "Prefer": "resolution=merge-duplicates,return=minimal" },
-            body: JSON.stringify({
-              email: email.toLowerCase().trim(),
-              plan_id: planId,
-              plan_name: productId,
-              reads_remaining: cfg.readsLimit ?? null,
-              reads_limit: cfg.readsLimit ?? null,
-              reads_per_day: cfg.readsPerDay ?? null,
-              active: true,
-              activated_at: new Date().toISOString(),
-              renewal_date: renewalDate.toISOString(),
-              subscription_token: purchase.subscriptionId || purchase.purchaseToken || null,
-            }),
-          }
-        );
-        if (!subRes.ok) console.error("[Huawei] subscription upsert failed:", await subRes.text());
-        else console.log("[Huawei] Subscription activated:", email, planId);
-      }
-
-      // Deeper reading
-      if (isDeeper && email) {
-        const deepRes = await fetch(
-          `${supabaseUrl}/rest/v1/deeper_readings?on_conflict=payment_id`,
-          {
-            method: "POST",
-            headers: { ...headers, "Prefer": "resolution=merge-duplicates,return=minimal" },
-            body: JSON.stringify({
-              payment_id: orderId,
-              email: email.toLowerCase().trim(),
-              name: name || "",
-              amount_zar: 0,
-              status: "complete",
-            }),
-          }
-        );
-        if (!deepRes.ok) console.error("[Huawei] deeper_readings upsert failed:", await deepRes.text());
-        else console.log("[Huawei] Deeper order created:", email);
-      }
-
-      console.log("[Huawei] Verified successfully:", productId);
-      return json({ success: true });
-
-    } catch (err) {
-      console.error("[Huawei] Error:", err.message);
-      return json({ error: err.message }, 500);
     }
   },
 };
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-    },
-  });
+async function handleHuaweiVerify(request, env, ctx, corsHeaders) {
+  const jsonResponse = (data, status = 200) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+
+  if (request.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+
+  try {
+    const body = await request.json();
+    const { purchaseData, signature, email, name } = body;
+
+    if (!purchaseData) return jsonResponse({ error: "missing purchaseData" }, 400);
+
+    let purchase;
+    try {
+      purchase = typeof purchaseData === "string" ? JSON.parse(purchaseData) : purchaseData;
+    } catch (e) {
+      return jsonResponse({ error: "invalid format" }, 400);
+    }
+
+    const productId = purchase?.productId || "";
+    const orderId = purchase?.orderId || purchase?.purchaseToken || `HMS-${Date.now()}`;
+    const isPaid = purchase?.purchaseState === 0;
+
+    if (!isPaid) return jsonResponse({ success: false, verified: false, note: "not_paid" });
+
+    // Supabase Sync
+    const supabaseUrl = env.SUPABASE_URL;
+    const supabaseKey = env.SUPABASE_SECRET_KEY;
+
+    // Log to payment_log
+    await fetch(`${supabaseUrl}/rest/v1/payment_log`, {
+      method: "POST",
+      headers: { "apikey": supabaseKey, "Authorization": `Bearer ${supabaseKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        payment_id: orderId,
+        email: email?.toLowerCase().trim(),
+        status: "COMPLETE",
+        item_name: `HMS-${productId}`,
+        raw_payload: { purchaseData, signature }
+      }),
+    });
+
+    return jsonResponse({ success: true, verified: true, orderId, productId });
+  } catch (err) {
+    return jsonResponse({ error: "Internal Error", message: err.message }, 500);
+  }
 }

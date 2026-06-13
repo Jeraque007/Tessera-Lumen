@@ -17,10 +17,14 @@ const PRODUCT_MAP = {
 const HMS_USER_CANCELLED_CODES = [60051, 60053, 60056];
 
 function isUserCancellation(err) {
-  const code = err?.code || err?.errorCode || err?.message?.match?.(/(\d{5})/)?.[1];
-  if (code && HMS_USER_CANCELLED_CODES.includes(Number(code))) return true;
-  const msg = (err?.message || "").toLowerCase();
-  return msg.includes("cancel") || msg.includes("60051") || msg.includes("60053") || msg.includes("60056");
+  const code = String(err?.code || err?.errorCode || err?.message || "");
+  if (HMS_USER_CANCELLED_CODES.some(c => code.includes(String(c)))) return true;
+  return code.toLowerCase().includes("cancel");
+}
+
+function isAlreadyOwned(err) {
+  const code = String(err?.code || err?.errorCode || err?.message || "");
+  return code.includes("60051") || code.includes("ORDER_PRODUCT_OWNED");
 }
 
 async function fetchWithRetry(url, options, retries = 2, timeoutMs = 15000) {
@@ -39,10 +43,12 @@ async function fetchWithRetry(url, options, retries = 2, timeoutMs = 15000) {
   }
 }
 async function verifyWithBackend(purchase, user) {
-  // Matches the worker name 'tessera-lumen' in your Cloudflare dashboard
-  const url = "https://tessera-lumen.jeraque007.workers.dev/";
+  // Custom domain used to bypass Great Firewall of China
+  const url = "https://verify.963.co.za/";
   console.log("[PaymentRouter] VERIFY URL:", url);
   try {
+    // IMPORTANT: purchase.purchaseData IS the raw string from HMS.
+    // We send it exactly as-is to prevent signature breakage.
     const res = await fetchWithRetry(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -128,12 +134,40 @@ export async function processPayment(selectedPackage, user, callbacks) {
         return;
       }
     } catch (hmsErr) {
-      // buyProduct failed - NO token - NEVER unlock
       if (isUserCancellation(hmsErr)) {
         console.log("[PaymentRouter] User cancelled - no token, no unlock");
         onError("Payment cancelled");
         return;
       }
+
+      if (isAlreadyOwned(hmsErr)) {
+        console.log("[PaymentRouter] Product already owned. Initiating Silent Recovery.");
+        try {
+          const restore = await import("../utils/huaweiIap.js");
+          const owned = await restore.restorePurchases(product.type);
+          const list = owned?.inAppPurchaseDataList || owned?.purchaseDataList || owned?.purchases || [];
+          const match = list.find(p => {
+            const d = typeof p === "string" ? JSON.parse(p) : p;
+            return d.productId === product.id;
+          });
+
+          if (match) {
+            const dataStr = typeof match === "string" ? match : JSON.stringify(match);
+            // Verify and consume the stuck token
+            await verifyWithBackend({ purchaseData: dataStr, signature: "" }, user);
+            if (product.type === 0) {
+              const parsed = typeof match === "string" ? JSON.parse(match) : match;
+              await restore.consumePurchase(parsed.purchaseToken);
+            }
+          }
+        } catch (recoverErr) {
+          console.warn("[PaymentRouter] Silent Recovery failed:", recoverErr.message);
+        }
+        localStorage.setItem("tl_is_paid", "true");
+        onSuccess();
+        return;
+      }
+
       console.log("[PaymentRouter] HMS failed, falling back to PayFast:", hmsErr.message);
     }
   }
@@ -142,7 +176,14 @@ export async function processPayment(selectedPackage, user, callbacks) {
     if (onPending) onPending({ type: "standard", pkgId: selectedPackage.id, timestamp: Date.now() });
     await initiatePayFastPayment(selectedPackage, user);
   } catch (err) {
-    onError(err.message || "Payment failed");
+    const errorMsg = err.message || "Payment failed";
+    console.error("[PaymentRouter] FINAL FATAL ERROR:", errorMsg, "| Stack:", err.stack);
+    // Provide more detail for "Failed to fetch"
+    if (errorMsg.includes("fetch")) {
+      onError("Connection error (Failed to fetch). Please check your internet or VPN settings.");
+    } else {
+      onError(errorMsg);
+    }
   }
 }
 export async function processDeeperPayment(user, callbacks) {

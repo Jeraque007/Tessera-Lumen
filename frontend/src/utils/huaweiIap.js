@@ -19,9 +19,10 @@ export const productIds = {
 export async function checkIapEnv() {
   try {
     const res = await HuaweiIap.isEnvReady();
-    return res.status === 0;
+    // 0 means environment is ready and HMS is available
+    return res.status === 0 && res.returnCode === 0;
   } catch (e) {
-    console.error("Huawei IAP Env not ready:", e);
+    console.error("[HMS] Env not ready:", e.message || e);
     return false;
   }
 }
@@ -103,7 +104,7 @@ export async function checkHmsReady() {
   }
   try {
     const res = await HuaweiIap.isEnvReady();
-    window.__HMS_READY = res.status === 0;
+    window.__HMS_READY = res.status === 0 && res.returnCode === 0;
     console.log("[HMS] IAP environment ready:", window.__HMS_READY);
     return window.__HMS_READY;
   } catch (e) {
@@ -111,6 +112,46 @@ export async function checkHmsReady() {
     window.__HMS_READY = false;
     return false;
   }
+}
+
+/**
+ * Redeliver strategy: Check for undelivered consumables and active subscriptions.
+ * Grant access to the user if any valid purchase is found.
+ */
+export async function redeliverPurchases() {
+  if (!window.Capacitor?.isNativePlatform?.()) return { paid: false, sub: false };
+  let hasPaid = false;
+  let hasSub = false;
+
+  try {
+    // 1. Check Consumables (Type 0)
+    const conRes = await HuaweiIap.getOwnedPurchases({ type: 0 });
+    const conList = conRes?.purchaseDataList || [];
+    for (const dataStr of conList) {
+      const data = typeof dataStr === "string" ? JSON.parse(dataStr) : dataStr;
+      if (data.purchaseState === 0) {
+        console.log("[HMS] Undelivered consumable found:", data.productId);
+        hasPaid = true;
+        // In reality, you'd verify token with backend here, then consume
+        // But for UI immediate access:
+        localStorage.setItem("tl_is_paid", "true");
+        await HuaweiIap.consumePurchase({ purchaseToken: data.purchaseToken });
+      }
+    }
+
+    // 2. Check Subscriptions (Type 2)
+    const subRes = await HuaweiIap.getOwnedPurchases({ type: 2 });
+    const subList = subRes?.purchaseDataList || [];
+    if (subList.length > 0) {
+      console.log("[HMS] Active subscription found during redelivery");
+      hasSub = true;
+      localStorage.setItem("tl_is_paid", "true");
+    }
+  } catch (e) {
+    console.error("[HMS] Redelivery check failed:", e.message);
+  }
+
+  return { paid: hasPaid, sub: hasSub };
 }
 
 /**

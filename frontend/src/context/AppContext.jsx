@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { checkHmsReady, consumeOrphanedPurchases } from "../utils/huaweiIap.js";
+import { checkHmsReady, redeliverPurchases } from "../utils/huaweiIap.js";
 import { apiUrl } from "../utils/apiBase.js";
 
 const AppContext = createContext(null);
@@ -75,10 +75,15 @@ export function AppProvider({ children }) {
 
   const [paymentLoading, setPaymentLoading] = useState(false);
 
-  // Check HMS IAP availability on native Android + consume any stuck purchases
+  // Check HMS IAP availability on native Android + recover any lost purchases
   useEffect(() => {
     checkHmsReady()
-      .then((ready) => { if (ready) consumeOrphanedPurchases(); })
+      .then(async (ready) => {
+        if (ready) {
+          const { paid, sub } = await redeliverPurchases();
+          if (paid || sub) setIsPaid(true);
+        }
+      })
       .catch(() => {});
   }, []);
 

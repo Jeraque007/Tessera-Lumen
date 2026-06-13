@@ -1,16 +1,12 @@
 import { useState } from "react";
 
 export default function PrivacyConsent({ onAccept, onReject, onViewPolicy }) {
-  const [fading, setFading] = useState(false);
-
   const handleAccept = () => {
-    setFading(true);
-    setTimeout(() => onAccept(), 400);
+    onAccept();
   };
 
   const handleReject = () => {
-    setFading(true);
-    setTimeout(() => { if (onReject) onReject(); }, 400);
+    if (onReject) onReject();
   };
 
   return (
@@ -23,9 +19,7 @@ export default function PrivacyConsent({ onAccept, onReject, onViewPolicy }) {
         alignItems: "flex-end",
         justifyContent: "center",
         paddingBottom: "env(safe-area-inset-bottom, 24px)",
-        background: "rgba(6,8,16,0.98)",
-        opacity: fading ? 0 : 1,
-        transition: "opacity 0.4s ease",
+        background: "rgba(6,8,16,0.95)",
       }}
     >
       <div
@@ -37,7 +31,7 @@ export default function PrivacyConsent({ onAccept, onReject, onViewPolicy }) {
           borderRadius: "20px",
           padding: "28px 24px 24px",
           marginBottom: "32px",
-          boxShadow: "0 -20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(212,175,55,0.08)",
+          boxShadow: "0 0 40px rgba(0,0,0,0.8)",
           textAlign: "center",
         }}
       >
@@ -57,14 +51,12 @@ export default function PrivacyConsent({ onAccept, onReject, onViewPolicy }) {
           margin: "0 0 8px",
         }}>
           By continuing, you acknowledge that you have read and agree to our{" "}
-          <a
-            href="/privacy"
-            target="_blank"
-            rel="noopener"
-            style={{ color: "#D4AF37", textDecoration: "underline", textUnderlineOffset: "3px", cursor: "pointer" }}
+          <button
+            onClick={onViewPolicy}
+            style={{ background: "none", border: "none", color: "#D4AF37", textDecoration: "underline", padding: 0, font: "inherit", cursor: "pointer" }}
           >
             Privacy Policy
-          </a>
+          </button>
         </p>
 
         <p style={{

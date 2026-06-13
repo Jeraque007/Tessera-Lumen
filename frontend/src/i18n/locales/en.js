@@ -9,6 +9,7 @@ export default {
   welcomeTop: "Welcome to the Field of Sophia",
   welcomeBody: "Step into a space of illumination, insight, and inner awakening. This experience offers guided tarot readings designed to reveal clarity, truth, and direction.",
   welcomeBtn: "Begin",
+  freeTrialBtn: "Try Free Sample Reading",
 
   // Details
   detailsTag: "Your Journey",
@@ -72,6 +73,7 @@ export default {
   paymentAwait: "YOUR READING AWAITS",
   paymentAwaitsBody: "Tap below to enter your sacred reading space.",
   paymentError: "Payment could not be initiated. Please try again.",
+  changePackage: "Change Selection",
 
   // Reveal
   revealTag: "The Cards Speak",
@@ -118,10 +120,10 @@ export default {
   languageLabel: "Language",
   languages: {
     en: "English",
-    es: "EspaÃƒÂ±ol",
-    fr: "FranÃƒÂ§ais",
+    es: "Español",
+    fr: "Français",
     de: "Deutsch",
-    pt: "PortuguÃƒÂªs",
+    pt: "Português",
   },
 };
 

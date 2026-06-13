@@ -15,7 +15,7 @@ export default function ScreenWrapper({ children, className = "", hideLogo = fal
       className={`relative z-10 min-h-screen w-full mx-auto flex flex-col overflow-y-auto animate-fade-in-up ${className}`}
       style={{ maxWidth: "min(100%, 860px)" }}
     >
-      {!hideLogo && (
+      {!hideLogo && !isWelcome && (
         <button
           onClick={() => goTo("welcome")}
           aria-label="Return to home"

@@ -171,7 +171,13 @@ function Router() {
         )}
         {!LEGAL_SCREENS.includes(screen) && !paymentLoading && <AppFooter />}
       </div>
-      {!privacyAccepted && screen !== "privacy" && <PrivacyConsent onAccept={handlePrivacyAccept} onReject={() => { window.history.back(); }} />}
+      {!privacyAccepted && screen !== "privacy" && (
+        <PrivacyConsent
+          onAccept={handlePrivacyAccept}
+          onReject={() => { window.history.back(); }}
+          onViewPolicy={() => goTo("privacy")}
+        />
+      )}
     </div>
   );
 }

@@ -13,7 +13,7 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper hideLogo={true}>
       <div aria-hidden="true" style={{ position:"fixed",inset:0,zIndex:0,backgroundImage:"url(/bg.jpg)",backgroundSize:"cover",backgroundPosition:"center",backgroundRepeat:"no-repeat" }} />
       <div aria-hidden="true" style={{ position:"fixed",inset:0,zIndex:1,background:"linear-gradient(to bottom,rgba(6,8,16,0.45) 0%,rgba(10,12,26,0.55) 40%,rgba(6,8,16,0.82) 75%,rgba(6,8,16,0.97) 100%)" }} />
       <div className="relative flex flex-col min-h-screen px-6" style={{ zIndex:2 }}>

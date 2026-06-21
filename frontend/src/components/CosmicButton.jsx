@@ -10,7 +10,7 @@ export default function CosmicButton({ children, onClick, disabled = false, clas
         hover:scale-[1.03] hover:shadow-[0_0_30px_rgba(13,26,46,0.8)]
         active:scale-[0.98]
         disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100
-        glow-cosmic
+        glow-cosmic shimmer
         ${className}
       `}
     >

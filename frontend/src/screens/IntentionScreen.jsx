@@ -4,6 +4,7 @@ import TpButton from "../components/TpButton.jsx";
 import Divider from "../components/Divider.jsx";
 import { useApp } from "../context/AppContext.jsx";
 import { useTranslation } from "react-i18next";
+import AmbientAudio from "../utils/ambient-audio-manager.js";
 
 const INTENTION_IMAGES = {
   family: "/Intention%20cards/Family.jpg",
@@ -25,7 +26,11 @@ export default function IntentionScreen() {
   const [customText, setCustomText] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
 
-  const handleSelect = (card) => {
+  const handleSelect = async (card) => {
+    // Ensure audio is ready and play the .wav sound
+    await AmbientAudio.init();
+    AmbientAudio.onCardTouch();
+
     if (card.id === "other") {
       setShowCustomInput(true);
       setSelected(customText || "Other");
@@ -63,16 +68,7 @@ export default function IntentionScreen() {
 
         {/* 4x2 CARD GRID */}
         <div
-          className="animate-fade-in-up delay-200 intention-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(2, 1fr)",
-            gap: "14px",
-            width: "100%",
-            maxWidth: "600px",
-            margin: "0 auto",
-            padding: "8px 0",
-          }}
+          className="animate-fade-in-up delay-200 intention-grid grid grid-cols-2 md:grid-cols-4 gap-[14px] w-full max-w-[600px] md:max-w-[900px] mx-auto py-2"
         >
           {INTENTION_IDS.map((id, i) => {
             const labels = t("intentionCards");
@@ -163,7 +159,7 @@ export default function IntentionScreen() {
 
         {/* Custom intention input (appears when Other is selected) */}
         {showCustomInput && (
-          <div className="animate-fade-in" style={{ maxWidth: "600px", width: "100%", margin: "16px auto 0" }}>
+          <div className="animate-fade-in w-full max-w-[600px] md:max-w-[900px] mx-auto mt-4">
             <textarea
               value={customText}
               onChange={(e) => { setCustomText(e.target.value.slice(0, 200)); setSelected(e.target.value.slice(0, 200) || "Other"); }}
@@ -180,7 +176,7 @@ export default function IntentionScreen() {
         )}
 
         {/* Continue button */}
-        <div className="mt-auto pt-8 pb-8 animate-fade-in-up delay-500" style={{ maxWidth: "600px", width: "100%", margin: "0 auto" }}>
+        <div className="mt-auto pt-8 pb-8 animate-fade-in-up delay-500 w-full max-w-[600px] md:max-w-[900px] mx-auto">
           <TpButton onClick={handleContinue} disabled={!selected}>
             {t("intentionBtn")}
           </TpButton>

@@ -1,6 +1,10 @@
 import { useState } from "react";
 
+import { useTranslation } from "react-i18next";
+
 export default function PrivacyConsent({ onAccept, onReject, onViewPolicy }) {
+  const { t } = useTranslation();
+
   const handleAccept = () => {
     onAccept();
   };
@@ -38,7 +42,7 @@ export default function PrivacyConsent({ onAccept, onReject, onViewPolicy }) {
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "18px" }}>
           <div style={{ flex: 1, height: "1px", background: "linear-gradient(to right, transparent, rgba(212,175,55,0.3))" }} />
           <span style={{ fontFamily: "Cinzel, serif", fontSize: "0.6rem", letterSpacing: "0.3em", color: "rgba(212,175,55,0.6)", textTransform: "uppercase" }}>
-            Privacy Notice
+            {t("privacyNoticeTitle")}
           </span>
           <div style={{ flex: 1, height: "1px", background: "linear-gradient(to left, transparent, rgba(212,175,55,0.3))" }} />
         </div>
@@ -50,12 +54,12 @@ export default function PrivacyConsent({ onAccept, onReject, onViewPolicy }) {
           color: "rgba(240,232,216,0.8)",
           margin: "0 0 8px",
         }}>
-          By continuing, you acknowledge that you have read and agree to our{" "}
+          {t("privacyNoticeBody")}{" "}
           <button
             onClick={onViewPolicy}
             style={{ background: "none", border: "none", color: "#D4AF37", textDecoration: "underline", padding: 0, font: "inherit", cursor: "pointer" }}
           >
-            Privacy Policy
+            {t("privacyNoticePolicyLink")}
           </button>
         </p>
 
@@ -66,7 +70,7 @@ export default function PrivacyConsent({ onAccept, onReject, onViewPolicy }) {
           margin: "0 0 22px",
           fontStyle: "italic",
         }}>
-          We respect your data and your journey.
+          {t("privacyNoticeRespect")}
         </p>
 
         {/* Agree button */}
@@ -91,7 +95,7 @@ export default function PrivacyConsent({ onAccept, onReject, onViewPolicy }) {
             marginBottom: "12px",
           }}
         >
-          Agree
+          {t("privacyNoticeAgree")}
         </button>
 
         {/* Reject button */}
@@ -114,7 +118,7 @@ export default function PrivacyConsent({ onAccept, onReject, onViewPolicy }) {
             transition: "all 0.3s",
           }}
         >
-          Reject
+          {t("privacyNoticeReject")}
         </button>
       </div>
     </div>

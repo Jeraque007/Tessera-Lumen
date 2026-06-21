@@ -48,7 +48,7 @@ export default function TermsScreen({ onBack }) {
       </Section>
 
       <Section title="5. Subscription and Payment Terms">
-        <P>Subscription plans are billed monthly in South African Rand (ZAR) via PayFast. By subscribing you agree to:</P>
+        <P>Subscription plans are billed monthly in US Dollars ($) via HMS IAP. By subscribing you agree to:</P>
         <Ul>
           <Li>Recurring monthly charges until cancellation</Li>
           <Li>Reading quotas as defined by your selected plan</Li>

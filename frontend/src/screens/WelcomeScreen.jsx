@@ -2,19 +2,34 @@ import ScreenWrapper from "../components/ScreenWrapper.jsx";
 import GoldButton from "../components/GoldButton.jsx";
 import { useApp } from "../context/AppContext.jsx";
 import { useTranslation } from "react-i18next";
+import AmbientAudio from "../utils/ambient-audio-manager.js";
 
 export default function WelcomeScreen() {
   const { goTo, resetSession, setSelectedPackage, setIsPaid } = useApp();
   const { t } = useTranslation();
 
-  const handleStart = () => {
+  const handleStart = async () => {
+    // Initialize audio system on user gesture
+    await AmbientAudio.init();
+    AmbientAudio.startAmbient();
+
     resetSession();
     goTo("details");
   };
 
+  const handleFreeTrial = async () => {
+    await AmbientAudio.init();
+    AmbientAudio.startAmbient();
+
+    resetSession();
+    setSelectedPackage({ id: 0, name: "Free Sample", type: "free", cards: 1, price: "Free" });
+    setIsPaid(true);
+    goTo("reveal");
+  };
+
   return (
     <ScreenWrapper hideLogo={true}>
-      <div aria-hidden="true" style={{ position:"fixed",inset:0,zIndex:0,backgroundImage:"url(/bg.jpg)",backgroundSize:"cover",backgroundPosition:"center",backgroundRepeat:"no-repeat" }} />
+      <div aria-hidden="true" style={{ position:"fixed",inset:0,zIndex:0,backgroundImage:"url(/bg.webp)",backgroundSize:"cover",backgroundPosition:"center",backgroundRepeat:"no-repeat" }} />
       <div aria-hidden="true" style={{ position:"fixed",inset:0,zIndex:1,background:"linear-gradient(to bottom,rgba(6,8,16,0.45) 0%,rgba(10,12,26,0.55) 40%,rgba(6,8,16,0.82) 75%,rgba(6,8,16,0.97) 100%)" }} />
       <div className="relative flex flex-col min-h-screen px-6" style={{ zIndex:2 }}>
         <div className="flex-none pt-10 pb-2 text-center animate-fade-in-up">
@@ -41,7 +56,7 @@ export default function WelcomeScreen() {
           </div>
           <GoldButton onClick={handleStart}>{t("welcomeBtn")}</GoldButton>
           <button
-            onClick={() => { resetSession(); setSelectedPackage({ id: 0, name: "Free Sample", type: "free", cards: 1, price: "Free" }); setIsPaid(true); goTo("reveal"); }}
+            onClick={handleFreeTrial}
             className="w-full py-3 mt-3 rounded-xl border border-[#D4AF37]/25 text-[#D4AF37]/80 font-cinzel text-xs tracking-widest hover:border-[#D4AF37]/50 transition-all"
           >
             {t("freeTrialBtn") || "Try Free Sample Reading"}

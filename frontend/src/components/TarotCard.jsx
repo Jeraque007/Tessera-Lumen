@@ -1,11 +1,20 @@
 import { useState } from "react";
+import AmbientAudio from "../utils/ambient-audio-manager.js";
 
 export default function TarotCard({ card, position, index = 0 }) {
   const [imgError, setImgError] = useState(false);
+  const [pulsing, setPulsing] = useState(false);
+
+  const handleTouch = async () => {
+    setPulsing(true);
+    await AmbientAudio.onCardTouch();
+    setTimeout(() => setPulsing(false), 450);
+  };
 
   return (
     <article
-      className="w-full animate-fade-in-up"
+      onClick={handleTouch}
+      className={["w-full animate-fade-in-up", pulsing ? "pulse-glow" : ""].join(" ")}
       style={{
         animationDelay: index * 0.4 + "s",
         background: "linear-gradient(160deg, #0d0a1e 0%, #060810 60%, #0a0618 100%)",

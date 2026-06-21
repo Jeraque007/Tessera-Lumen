@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { checkHmsReady, redeliverPurchases } from "../utils/huaweiIap.js";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
+import { checkHmsReady, redeliverPurchases, consumeOrphanedPurchases } from "../utils/huaweiIap.js";
 import { apiUrl } from "../utils/apiBase.js";
+import { verifyWithBackend } from "../services/PaymentEngine.js";
 
 const AppContext = createContext(null);
 
@@ -8,14 +10,21 @@ const APP_VERSION = "1.0.7";
 
 // Version-based cache clear - runs once before any state initializes
 function checkVersionAndClear() {
-  const stored = localStorage.getItem("tl_app_version");
-  if (stored !== APP_VERSION) {
-    console.log(`[Version] Upgrading ${stored || "none"} -> ${APP_VERSION}. Clearing stale state.`);
-    const preserve = localStorage.getItem("tl_privacy_accepted");
-    const keys = Object.keys(localStorage).filter(k => k.startsWith("tl_"));
-    keys.forEach(k => localStorage.removeItem(k));
-    if (preserve) localStorage.setItem("tl_privacy_accepted", preserve);
-    localStorage.setItem("tl_app_version", APP_VERSION);
+  try {
+    // Force debug mode for APK testing
+    window.__HMS_DEBUG = true;
+
+    const stored = localStorage.getItem("tl_app_version");
+    if (stored !== APP_VERSION) {
+      console.log(`[Version] Upgrading ${stored || "none"} -> ${APP_VERSION}. Clearing stale state.`);
+      const preserve = localStorage.getItem("tl_privacy_accepted");
+      const keys = Object.keys(localStorage).filter(k => k.startsWith("tl_"));
+      keys.forEach(k => localStorage.removeItem(k));
+      if (preserve) localStorage.setItem("tl_privacy_accepted", preserve);
+      localStorage.setItem("tl_app_version", APP_VERSION);
+    }
+  } catch (e) {
+    console.warn("[Version] LocalStorage unavailable:", e.message);
   }
 }
 checkVersionAndClear();
@@ -36,41 +45,61 @@ export function AppProvider({ children }) {
     return "welcome";
   });
 
+  const [previousScreen, setPreviousScreen] = useState("welcome");
+
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem("tl_user");
-    return saved ? JSON.parse(saved) : { name: "", email: "", dob: "" };
+    try {
+      const saved = localStorage.getItem("tl_user");
+      return saved ? JSON.parse(saved) : { name: "", email: "", dob: "" };
+    } catch (e) { return { name: "", email: "", dob: "" }; }
   });
 
-  const [intention, setIntention] = useState(() => localStorage.getItem("tl_intention") || "");
+  const [intention, setIntention] = useState(() => {
+    try { return localStorage.getItem("tl_intention") || ""; } catch (e) { return ""; }
+  });
 
   const [selectedPackage, setSelectedPackage] = useState(() => {
-    const saved = localStorage.getItem("tl_selected_pkg");
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem("tl_selected_pkg");
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) { return null; }
   });
 
   const [isPaid, setIsPaid] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("paid") === "1") return true;
-    return localStorage.getItem("tl_is_paid") === "true";
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("paid") === "1") return true;
+      return localStorage.getItem("tl_is_paid") === "true";
+    } catch (e) { return false; }
   });
 
   const [drawnCards, setDrawnCards] = useState(() => {
-    const saved = localStorage.getItem("tl_drawn_cards");
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem("tl_drawn_cards");
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [immutableReadings, setImmutableReadings] = useState(() => {
-    const saved = localStorage.getItem("tl_immutable_readings");
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem("tl_immutable_readings");
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
-  const [deeperPaid, setDeeperPaid] = useState(() => localStorage.getItem("tl_deeper_paid") === "true");
+  const [deeperPaid, setDeeperPaid] = useState(() => {
+    try { return localStorage.getItem("tl_deeper_paid") === "true"; } catch (e) { return false; }
+  });
 
-  const [uploadedImage, setUploadedImage] = useState(() => localStorage.getItem("tl_uploaded_image") || null);
+  const [uploadedImage, setUploadedImage] = useState(() => {
+    try { return localStorage.getItem("tl_uploaded_image") || null; } catch (e) { return null; }
+  });
 
   const [paymentPending, setPaymentPending] = useState(() => {
-    const saved = localStorage.getItem("tl_payment_pending");
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem("tl_payment_pending");
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) { return null; }
   });
 
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -80,12 +109,50 @@ export function AppProvider({ children }) {
     checkHmsReady()
       .then(async (ready) => {
         if (ready) {
+          await consumeOrphanedPurchases();
           const { paid, sub } = await redeliverPurchases();
           if (paid || sub) setIsPaid(true);
         }
       })
       .catch(() => {});
   }, []);
+
+  // Background Verification Queue Processor
+  useEffect(() => {
+    const processQueue = async () => {
+      try {
+        const pending = JSON.parse(localStorage.getItem("tl_pending_verifications") || "[]");
+        if (pending.length === 0) return;
+
+        console.log(`[Queue] Processing ${pending.length} pending verifications...`);
+        const remaining = [];
+        for (const item of pending) {
+          try {
+            // Re-use verifyWithBackend from PaymentEngine
+            const { verified } = await verifyWithBackend(item, user);
+            if (!verified) {
+              remaining.push(item);
+            } else {
+              console.log(`[Queue] Successfully verified product: ${item.productId}`);
+            }
+          } catch (e) {
+            console.warn("[Queue] Retry failed for item:", e.message);
+            remaining.push(item);
+          }
+        }
+
+        if (remaining.length !== pending.length) {
+          localStorage.setItem("tl_pending_verifications", JSON.stringify(remaining));
+        }
+      } catch (e) {
+        console.error("[Queue] Fatal error in processor:", e);
+      }
+    };
+
+    const timer = setInterval(processQueue, 60000); // Check every minute
+    processQueue(); // Run immediately on mount
+    return () => clearInterval(timer);
+  }, [user]);
 
   // Persistence Sync
   useEffect(() => {
@@ -109,7 +176,24 @@ export function AppProvider({ children }) {
 
   const goTo = useCallback((s) => {
     console.log("[Nav] Navigating to:", s);
-    setScreen(s);
+    // Haptic feedback for transitions
+    try {
+      if (window.Capacitor?.isNativePlatform()) {
+        Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+      }
+    } catch (e) {}
+
+    setScreen((current) => {
+      // Don't set previousScreen if we are navigating to a legal screen from another legal screen
+      // or if we are already on the screen we want to go to.
+      const LEGAL = ["terms", "privacy", "licensing"];
+      if (!LEGAL.includes(s) && current !== s) {
+        setPreviousScreen(current);
+      } else if (LEGAL.includes(s) && !LEGAL.includes(current)) {
+        setPreviousScreen(current);
+      }
+      return s;
+    });
   }, []);
 
   const resetSession = useCallback(() => {
@@ -131,7 +215,9 @@ export function AppProvider({ children }) {
     if (!email) return null;
     setPaymentLoading(true);
     try {
-      const res = await fetch(apiUrl(`/api/subscription/status?email=${encodeURIComponent(email)}`));
+      // Use the comprehensive PayFast status endpoint that checks subscriptions,
+      // one-time readings, and deeper readings.
+      const res = await fetch(apiUrl(`/api/payfast/status?email=${encodeURIComponent(email)}`));
       if (!res.ok) { setPaymentLoading(false); return null; }
       const data = await res.json();
       if (data.isPaid) setIsPaid(true);
@@ -147,7 +233,7 @@ export function AppProvider({ children }) {
 
   return (
     <AppContext.Provider value={{
-      screen, goTo, resetSession,
+      screen, goTo, resetSession, previousScreen,
       user, setUser,
       intention, setIntention,
       selectedPackage, setSelectedPackage,

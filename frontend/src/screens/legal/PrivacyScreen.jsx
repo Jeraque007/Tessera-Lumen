@@ -96,18 +96,50 @@ export default function PrivacyScreen({ onBack }) {
         <P>We aim to respond to all enquiries within 2 business days.</P>
       </Section>
 
-    <Section title="Chinese Version">
+      <Section title="Chinese Version (中文)">
         <P style={{ fontStyle: "normal" }}>
           <strong>应用名称：</strong>Tessera Lumen<br/>
           <strong>开发者：</strong>Sylvana Anne Ellis<br/>
           <strong>联系方式：</strong>holistic@963.co.za<br/><br/>
-          本隐私政策适用于Tessera Lumen移动应用程序和网络应用程序（app.963.co.za），由Sylvana Anne Ellis开发和运营。<br/><br/>
+          本隐私政策适用于由 Sylvana Anne Ellis 开发和运营的 Tessera Lumen 移动应用程序和网络应用程序 (app.963.co.za)。<br/><br/>
+          <strong>数据处理地点：</strong>移动应用的用户数据通过华为 AppGallery Connect 基础设施在<strong>新加坡</strong>地区进行处理。<br/><br/>
           <strong>我们收集的信息：</strong>姓名、电子邮件地址、出生日期（可选）。这些信息仅用于个性化您的阅读体验。<br/><br/>
-          <strong>数据使用：</strong>我们使用您的信息提供个性化的塔罗牌阅读服务。我们不会出售或分享您的个人信息给第三方用于营销目的。<br/><br/>
-          <strong>支付处理：</strong>所有支付通过PayFast处理，这是一个符合PCI-DSS标准的支付网关。Tessera Lumen不存储、处理或访问您的银行卡详细信息。<br/><br/>
-          <strong>数据存储：</strong>您的数据安全地存储在Supabase（云数据库）中，并受行业标准加密保护。<br/><br/>
-          <strong>您的权利：</strong>您可以随时通过联系holistic@963.co.za请求删除您的数据。<br/><br/>
-          <strong>同意：</strong>使用本应用即表示您同意本隐私政策。如果您不同意，请停止使用本应用。
+          <strong>数据使用：</strong>我们使用您的信息提供个性化的塔罗牌阅读服务。我们不会出售或向第三方分享您的个人信息用于营销目的。<br/><br/>
+          <strong>支付处理：</strong>所有支付通过 PayFast 或华为应用内支付处理。Tessera Lumen 不存储、处理或访问您的银行卡详细信息。<br/><br/>
+          <strong>数据存储：</strong>您的数据安全地存储在 Supabase（云数据库）中，并受行业标准加密保护。<br/><br/>
+          <strong>您的权利：</strong>您可以随时通过联系 holistic@963.co.za 请求删除您的数据。<br/><br/>
+          <strong>同意：</strong>使用本应用即表示您同意本隐私政策。
+        </P>
+      </Section>
+
+      <Section title="Versi Bahasa Melayu (Malay)">
+        <P style={{ fontStyle: "normal" }}>
+          <strong>Nama Aplikasi:</strong> Tessera Lumen<br/>
+          <strong>Pembangun:</strong> Sylvana Anne Ellis<br/>
+          <strong>Hubungi:</strong> holistic@963.co.za<br/><br/>
+          Dasar privasi ini terpakai kepada aplikasi mudah alih Tessera Lumen dan aplikasi web (app.963.co.za), yang dibangunkan dan dikendalikan oleh Sylvana Anne Ellis.<br/><br/>
+          <strong>Lokasi Pemprosesan Data:</strong> Data pengguna diproses di wilayah <strong>Singapura</strong> melalui infrastruktur Huawei AppGallery Connect.<br/><br/>
+          <strong>Maklumat yang Kami Kumpul:</strong> Nama, alamat e-mel, tarikh lahir (pilihan). Maklumat ini hanya digunakan untuk pemperibadian pengalaman bacaan anda.<br/><br/>
+          <strong>Penggunaan Data:</strong> Kami menggunakan maklumat anda untuk menyediakan perkhidmatan bacaan tarot yang diperibadikan. Kami tidak menjual atau berkongsi maklumat peribadi anda kepada pihak ketiga untuk tujuan pemasaran.<br/><br/>
+          <strong>Pemprosesan Pembayaran:</strong> Semua pembayaran diproses melalui PayFast atau Huawei IAP. Tessera Lumen tidak menyimpan, memproses atau mempunyai akses kepada butiran kad bank anda.<br/><br/>
+          <strong>Penyimpanan Data:</strong> Data anda disimpan dengan selamat di Supabase (pangkalan data awan) dan dilindungi oleh penyulitan standard industri.<br/><br/>
+          <strong>Hak Anda:</strong> Anda boleh meminta pemadaman data anda pada bila-bila masa dengan menghubungi holistic@963.co.za.<br/><br/>
+          <strong>Persetujuan:</strong> Menggunakan aplikasi ini bermakna anda bersetuju dengan dasar privasi ini.
+        </P>
+      </Section>
+
+      <Section title="தமிழ் பதிப்பு (Tamil)">
+        <P style={{ fontStyle: "normal" }}>
+          <strong>செயலி பெயர்:</strong> Tessera Lumen<br/>
+          <strong>டெவலப்பர்:</strong> Sylvana Anne Ellis<br/>
+          <strong>தொடர்புக்கு:</strong> holistic@963.co.za<br/><br/>
+          இந்த தனியுரிமைக் கொள்கை Tessera Lumen மொபைல் செயலி மற்றும் வலைச் செயலிக்கு (app.963.co.za) பொருந்தும்.<br/><br/>
+          <strong>தரவு செயலாக்க இடம்:</strong> மொபைல் செயலிக்கான பயனர் தரவு <strong>சிங்கப்பூர்</strong> பிராந்தியத்தில் ஹுவாய் AppGallery Connect உள்கட்டமைப்பு மூலம் செயலாக்கப்படுகிறது.<br/><br/>
+          <strong>நாங்கள் சேகரிக்கும் தகவல்கள்:</strong> பெயர், மின்னஞ்சல் முகவரி, பிறந்த தேதி (விரும்பினால்). இந்தத் தகவல்கள் உங்கள் வாசிப்பு அனுபவத்தைத் தனிப்பயனாக்க மட்டுமே பயன்படுத்தப்படுகின்றன.<br/><br/>
+          <strong>தரவுப் பயன்பாடு:</strong> தனிப்பயனாக்கப்பட்ட டாரட் வாசிப்பு சேவைகளை வழங்க உங்கள் தகவலைப் பயன்படுத்துகிறோம்.<br/><br/>
+          <strong>கட்டணச் செயலாக்கம்:</strong> அனைத்து கட்டணங்களும் PayFast அல்லது Huawei IAP மூலம் செயலாக்கப்படுகின்றன. Tessera Lumen உங்கள் வங்கி அட்டை விவரங்களைச் சேமிக்கவோ செய்யாது.<br/><br/>
+          <strong>தரவு சேமிப்பு:</strong> உங்கள் தரவு Supabase இல் பாதுகாப்பாகச் சேமிக்கப்பட்டு, தொழில்துறை தர குறியாக்கத்தால் பாதுகாக்கப்படுகிறது.<br/><br/>
+          <strong>சம்மதம்:</strong> இந்தச் செயலியைப் பயன்படுத்துவதன் மூலம் இந்தத் தனியுரிமைக் கொள்கையை ஏற்கிறீர்கள்.
         </P>
       </Section>
 

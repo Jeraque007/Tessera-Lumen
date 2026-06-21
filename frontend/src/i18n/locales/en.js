@@ -78,7 +78,7 @@ export default {
   // Reveal
   revealTag: "The Cards Speak",
   revealTitle: "Your card awaits. Your essence has selected a very special card.",
-  revealBtn: "Reveal My Cards",
+  revealBtn: "Tap on the card above",
   revealRevealing: "Revealing...",
   revealReceive: "Receive your reading",
   revealEmail: "Email",
@@ -118,6 +118,12 @@ export default {
   deeperPayCancelled: "Payment was cancelled. You can try again below.",
   deeperPayError: "Payment could not be initiated. Please try again.",
   languageLabel: "Language",
+  privacyNoticeTitle: "Privacy Notice",
+  privacyNoticeBody: "By continuing, you acknowledge that you have read and agree to our",
+  privacyNoticePolicyLink: "Privacy Policy",
+  privacyNoticeRespect: "We respect your data and your journey.",
+  privacyNoticeAgree: "Agree",
+  privacyNoticeReject: "Reject",
   languages: {
     en: "English",
     es: "Español",

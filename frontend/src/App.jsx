@@ -3,22 +3,9 @@ import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react"
 import { App as CapApp } from "@capacitor/app";
 import AppFooter from "./components/AppFooter.jsx";
 import PrivacyConsent from "./components/PrivacyConsent.jsx";
+import { routes } from "./routes/index.jsx";
 
-// Lazy-loaded screens - only loaded when navigated to
-const WelcomeScreen = lazy(() => import("./screens/WelcomeScreen.jsx"));
-const DetailsScreen = lazy(() => import("./screens/DetailsScreen.jsx"));
-const IntentionScreen = lazy(() => import("./screens/IntentionScreen.jsx"));
-const PackagesScreen = lazy(() => import("./screens/PackagesScreen.jsx"));
-const PaymentScreen = lazy(() => import("./screens/PaymentScreen.jsx"));
-const RevealScreen = lazy(() => import("./screens/RevealScreen.jsx"));
-const DeeperScreen = lazy(() => import("./screens/DeeperScreen.jsx"));
-const TermsScreen = lazy(() => import("./screens/legal/TermsScreen.jsx"));
-const PrivacyScreen = lazy(() => import("./screens/legal/PrivacyScreen.jsx"));
-const LicensingScreen = lazy(() => import("./screens/legal/LicensingScreen.jsx"));
-const PaymentSuccessScreen = lazy(() => import("./screens/PaymentSuccessScreen.jsx"));
-const PaymentCancelledScreen = lazy(() => import("./screens/PaymentCancelledScreen.jsx"));
-
-const LEGAL_SCREENS = ["terms", "privacy", "licensing", "payment-success", "payment-cancelled"];
+const LEGAL_SCREENS = ["terms", "privacy", "licensing", "payment-success", "payment-cancelled", "success", "failed"];
 
 function LoadingFallback() {
   return (
@@ -31,13 +18,19 @@ function LoadingFallback() {
 
 function Router() {
   const { screen, goTo, setIsPaid, setDeeperPaid, user, refreshPaymentStatus, paymentLoading, paymentPending, setPaymentPending } = useApp();
+
+  // Diagnostic mode: set to true to see on-device HMS error alerts
+  useEffect(() => { window.__HMS_DEBUG = true; }, []);
+
   const [privacyAccepted, setPrivacyAccepted] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("paid") || params.get("deeper_paid") || params.get("cancelled") || params.get("deeper_cancelled")) {
-      localStorage.setItem("tl_privacy_accepted", "true");
-      return true;
-    }
-    return localStorage.getItem("tl_privacy_accepted") === "true";
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("paid") || params.get("deeper_paid") || params.get("cancelled") || params.get("deeper_cancelled")) {
+        localStorage.setItem("tl_privacy_accepted", "true");
+        return true;
+      }
+      return localStorage.getItem("tl_privacy_accepted") === "true";
+    } catch (e) { return true; } // Default to accepted if LS fails
   });
 
   // Refs to avoid stale closures in Capacitor listeners
@@ -93,6 +86,11 @@ function Router() {
 
     if (hasPaidParam || hasCancelParam) {
       console.log("[Payment:Return] Cleaning URL:", window.location.search);
+
+      // We removed the aggressive "tessera://app" bounce here because
+      // the backend now handles the redirect through the Cloudflare Gateway
+      // using superior Intent URLs when 'native' is detected.
+
       window.history.replaceState({}, "", window.location.pathname);
 
       // Only set states if they aren't already set to prevent re-render loops
@@ -135,29 +133,68 @@ function Router() {
   }, [goTo, processDeepLink]);
 
   const renderScreen = () => {
-    switch (screen) {
-      case "welcome": return <WelcomeScreen />;
-      case "details": return <DetailsScreen />;
-      case "intention": return <IntentionScreen />;
-      case "packages": return <PackagesScreen />;
-      case "payment": return <PaymentScreen />;
-      case "reveal": return <RevealScreen />;
-      case "deeper": return <DeeperScreen />;
-      case "terms": return <TermsScreen onBack={() => goTo("welcome")} />;
-      case "privacy": return <PrivacyScreen onBack={() => goTo("welcome")} />;
-      case "licensing": return <LicensingScreen onBack={() => goTo("welcome")} />;
-      case "payment-success": return <PaymentSuccessScreen />;
-      case "payment-cancelled": return <PaymentCancelledScreen />;
-      default: return <WelcomeScreen />;
-    }
+    const Component = routes[screen] || routes["welcome"];
+    const { previousScreen } = useApp();
+
+    // Special handling for screens that need props
+    if (screen === "terms") return <Component onBack={() => goTo(previousScreen)} />;
+    if (screen === "privacy") return <Component onBack={() => goTo(previousScreen)} />;
+    if (screen === "licensing") return <Component onBack={() => goTo(previousScreen)} />;
+
+    return <Component />;
   };
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
+      {/* Cinematic Layered Background */}
       <div className="app-bg" />
-      <div className="nebula-overlay" />
-      <div className="starfield" />
-      <div className="particles" />
+      <div className="nebula-layer-1" />
+      <div className="nebula-layer-2" />
+      <div className="stars-layer" />
+      <div className="cosmic-depth" />
+      <div className="vignette-overlay" />
+
+      {/* High-fidelity Cinematic Diamond Sparkle Stars (8-Point) */}
+      <div className="starfield">
+        {/* Top left cluster */}
+        <div className="diamond-star top-[12%] left-[15%]" style={{ animationDelay: "0s" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+        <div className="diamond-star top-[18%] left-[10%]" style={{ animationDelay: "1.2s", transform: "scale(0.6)" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+
+        {/* Central Prominent Diamond */}
+        <div className="diamond-star top-[45%] left-[50%]" style={{ animationDelay: "2.5s", transform: "scale(1.2)" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+
+        {/* Right side cluster */}
+        <div className="diamond-star top-[25%] left-[82%]" style={{ animationDelay: "0.8s" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+        <div className="diamond-star top-[10%] left-[75%]" style={{ animationDelay: "3.1s", transform: "scale(0.8)" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+
+        {/* Bottom clusters */}
+        <div className="diamond-star top-[65%] left-[25%]" style={{ animationDelay: "4.5s" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+        <div className="diamond-star top-[82%] left-[70%]" style={{ animationDelay: "1.9s" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+        <div className="diamond-star top-[90%] left-[15%]" style={{ animationDelay: "5.3s", transform: "scale(0.7)" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+        <div className="diamond-star top-[55%] left-[88%]" style={{ animationDelay: "3.7s" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+        <div className="diamond-star top-[75%] left-[45%]" style={{ animationDelay: "6.1s", transform: "scale(0.5)" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+      </div>
+
       <div className="relative z-10 w-full">
         {paymentLoading ? (
           <div className="flex flex-col items-center justify-center min-h-screen">
@@ -169,7 +206,6 @@ function Router() {
             {renderScreen()}
           </Suspense>
         )}
-        {!LEGAL_SCREENS.includes(screen) && !paymentLoading && <AppFooter />}
       </div>
       {!privacyAccepted && screen !== "privacy" && (
         <PrivacyConsent

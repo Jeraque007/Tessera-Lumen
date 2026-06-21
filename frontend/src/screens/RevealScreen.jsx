@@ -10,6 +10,7 @@ import { drawCards } from "../data/cardResolver.js";
 import { useTranslation } from "react-i18next";
 import { createReadingObject } from "../utils/readingStore.js";
 import { renderReadingCard, dispatchExport } from "../utils/readingExport.js";
+import AmbientAudio from "../utils/ambient-audio-manager.js";
 
 export default function RevealScreen() {
   const {
@@ -60,6 +61,11 @@ export default function RevealScreen() {
   const handleReveal = async () => {
     if (processing || revealed) return;
     setProcessing(true);
+
+    // Ensure audio is ready even if they skipped welcome (e.g. deep link)
+    await AmbientAudio.init();
+    AmbientAudio.startAmbient();
+    AmbientAudio.onCardTouch(); // First shimmer on reveal
 
     const cards = drawCards(CARDS, cardCount, i18n.language);
     const baseReadings = cards.map((c, i) => createReadingObject(c, i, selectedPackage, user, intention, i18n.language));
@@ -126,7 +132,8 @@ export default function RevealScreen() {
                     <img
                       src={reading.export.dataUrl}
                       alt={reading.card.title}
-                      className="w-full h-auto rounded-2xl border border-[#D4AF37]/30 shadow-2xl"
+                      onClick={() => AmbientAudio.onCardTouch()}
+                      className="w-full h-auto rounded-2xl border border-[#D4AF37]/30 shadow-2xl cursor-pointer active:scale-[0.98] transition-transform"
                     />
                   ) : (
                     <div className="w-full aspect-[9/16] rounded-2xl border border-[#D4AF37]/20 bg-[#0d0a1e] flex items-center justify-center">

@@ -12,7 +12,7 @@ export default function CardBack({ reading, synthesis, isLoading }) {
       initial={{ opacity: 0, rotateY: 90 }}
       animate={{ opacity: 1, rotateY: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="w-full max-w-[700px] rounded-2xl overflow-hidden border-2 border-[#D4AF37]/30 bg-[#060810]"
+      className="w-full max-w-[700px] mx-auto rounded-2xl overflow-hidden border-2 border-[#D4AF37]/30 bg-[#060810]"
       style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.5), inset 0 0 40px rgba(0,0,0,0.3)" }}
     >
       <div className="grid grid-cols-2 min-h-[400px]">

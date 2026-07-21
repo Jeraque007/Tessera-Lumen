@@ -105,11 +105,17 @@ export default function RevealScreen() {
     selectedCountRef.current = 0;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Helper: called from inside setSelectedCards when limit is reached
-  const finishMultiCardSelection = (cards) => {
+  // FIX: useEffect watches selectedCards and triggers spread when limit is reached
+  // This avoids the broken setTimeout-inside-updater pattern
+  useEffect(() => {
+    if (sessionLimit <= 1) return;
+    if (selectedCards.length < sessionLimit) return;
+    if (phase === "spread" || phase === "viewing") return; // already transitioned
+
     setIsPaid(true);
     localStorage.setItem("tl_is_paid", "true");
-    const readings = cards.map((card, i) => {
+
+    const readings = selectedCards.map((card, i) => {
       const resolved = resolveCard(card, i18n.language);
       return createReadingObject(resolved, i, selectedPackage, user, intention);
     });
@@ -117,7 +123,7 @@ export default function RevealScreen() {
 
     // Generate individual synthesis for each card
     setSynthesisLoading(true);
-    const allResolved = cards.map(c => resolveCard(c, i18n.language));
+    const allResolved = selectedCards.map(c => resolveCard(c, i18n.language));
     const synthPromises = allResolved.map(card => generateSingleSynthesis(card, intention));
     Promise.all(synthPromises).then(results => {
       setCardSyntheses(results);
@@ -125,8 +131,10 @@ export default function RevealScreen() {
     }).catch(() => setSynthesisLoading(false));
 
     setPhase("spread");
-  };
+  }, [selectedCards.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auth guard: only runs ONCE on mount to check if user should be here
+  // DO NOT add isPaid to deps - it changes mid-session when cards are selected
   useEffect(() => {
     const timer = setTimeout(() => {
       const persistedPaid = localStorage.getItem("tl_is_paid") === "true";
@@ -139,7 +147,7 @@ export default function RevealScreen() {
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [isPaid, selectedPackage, goTo]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Fan Interaction ---
   const handlePointerMove = (e) => {
@@ -213,17 +221,7 @@ export default function RevealScreen() {
     if (sessionLimit > 1) {
       if (selectedCountRef.current >= sessionLimit) return;
       selectedCountRef.current += 1;
-      // FIX: Use functional update to avoid stale closure - selectedCards may be
-      // outdated in rapid-tap scenarios due to React batching
-      const newCount = selectedCountRef.current;
-      setSelectedCards(prev => {
-        const newSelected = [...prev, rawCard];
-        // Trigger spread transition when we reach the limit
-        if (newSelected.length >= sessionLimit) {
-          setTimeout(() => finishMultiCardSelection(newSelected), 0);
-        }
-        return newSelected;
-      });
+      setSelectedCards(prev => [...prev, rawCard]);
       setDrawnCards(prev => [...prev, rawCard]);
       setDrawHistory(prev => ({
         daily: { date: today, count: (prev.daily.date === today ? prev.daily.count : 0) + 1 },
@@ -425,7 +423,7 @@ export default function RevealScreen() {
 
               <div className="w-full max-w-[400px] flex flex-col gap-4 mt-10 mb-20 px-2">
                 <button onClick={handleSaveSingle} disabled={saving}
-                  className="w-full py-5 rounded-2xl bg-[#D4AF37] text-[#060810] font-cinzel text-[13px] font-bold tracking-[0.3em] uppercase shadow-[0_0_20px_rgba(212,175,55,0.4)] active:scale-95 transition-all disabled:opacity-50">
+                  className="w-full py-4 rounded-xl bg-[#D4AF37] text-[#060810] font-cinzel text-[11px] font-bold tracking-[0.3em] uppercase shadow-[0_0_20px_rgba(212,175,55,0.4)] active:scale-95 transition-all disabled:opacity-50">
                   {saving ? "SAVING..." : "SAVE READING TO DEVICE"}
                 </button>
                 <button onClick={() => goTo("packages")}
@@ -445,9 +443,7 @@ export default function RevealScreen() {
               </h2>
 
               {!spreadRevealed ? (
-                <p className="font-cormorant text-sm italic text-white/50 mb-6 text-center">
-                  Tap the glowing card to reveal your spread
-                </p>
+                null
               ) : (
                 <div className="mb-6 py-3 px-8 rounded-full border-2 border-[#D4AF37] bg-[#D4AF37]/15 animate-pulse shadow-[0_0_20px_rgba(212,175,55,0.3)]">
                   <p className="font-cinzel text-[13px] tracking-[0.25em] text-[#D4AF37] uppercase text-center font-bold">
@@ -474,7 +470,7 @@ export default function RevealScreen() {
                       }
                       className={`relative cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-300 ${
                         isCenter && !spreadRevealed
-                          ? "border-[#D4AF37] shadow-[0_0_40px_rgba(212,175,55,0.7)] animate-[vibrate_0.3s_ease-in-out_infinite]"
+                          ? "border-[#D4AF37] shadow-[0_0_40px_rgba(212,175,55,0.7)] "
                           : spreadRevealed
                             ? "border-[#D4AF37]/40 hover:border-[#D4AF37] hover:shadow-[0_0_20px_rgba(212,175,55,0.4)]"
                             : "border-[#D4AF37]/20"
@@ -523,8 +519,8 @@ export default function RevealScreen() {
               {spreadRevealed && (
                 <div className="w-full max-w-[400px] flex flex-col gap-4 mt-6">
                   <button onClick={handleSaveSpread} disabled={saving || synthesisLoading}
-                    className="w-full py-5 rounded-2xl bg-[#D4AF37] text-[#060810] font-cinzel text-[13px] font-bold tracking-[0.3em] uppercase shadow-[0_0_20px_rgba(212,175,55,0.4)] active:scale-95 transition-all disabled:opacity-50">
-                    {saving ? "SAVING..." : synthesisLoading ? "CHANNELING..." : `SAVE ALL ${sessionLimit} CARDS`}
+                    className="w-full py-4 rounded-xl bg-[#D4AF37] text-[#060810] font-cinzel text-[11px] font-bold tracking-[0.3em] uppercase shadow-[0_0_20px_rgba(212,175,55,0.4)] active:scale-95 transition-all disabled:opacity-50">
+                    {saving ? "SAVING..." : synthesisLoading ? "CHANNELING..." : "SAVE READING TO DEVICE"}
                   </button>
                   <button onClick={() => goTo("packages")}
                     className="w-full py-4 rounded-2xl border border-white/10 text-white/40 font-cinzel text-[11px] tracking-[0.3em] uppercase hover:text-white/60 transition-all">

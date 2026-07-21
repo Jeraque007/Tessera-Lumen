@@ -418,9 +418,9 @@ export default function FreeCardPromo() {
               {!downloaded && (
                 <button
                   onClick={handleSave}
-                  className="w-full py-4 rounded-xl bg-[#D4AF37] text-[#060810] font-cinzel text-[11px] font-bold tracking-[0.3em] uppercase shadow-[0_0_20px_rgba(212,175,55,0.4)] active:scale-95 transition-all mb-4"
+                  className="w-full max-w-[320px] mx-auto block py-3 rounded-lg bg-[#D4AF37] text-[#060810] font-cinzel text-[10px] font-bold tracking-[0.2em] uppercase shadow-[0_0_12px_rgba(212,175,55,0.3)] active:scale-95 transition-all mb-4"
                 >
-                  Save Reading to Device
+                  SAVE READING TO DEVICE
                 </button>
               )}
 

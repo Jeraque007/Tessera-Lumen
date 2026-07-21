@@ -57,56 +57,52 @@ function buildCardExportDOM(reading, cardImageBase64, synthesis) {
       </div>
     </div>
 
-    <!-- RIGHT: Card Back (B) - Sacred Text + AI Synthesis -->
-    <div style="width:55%; height:100%; display:flex; flex-direction:column; overflow:hidden;">
-      <!-- Header -->
-      <div style="padding:16px 24px; border-bottom:1px solid rgba(212,175,55,0.15); display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
-        <div>
-          <p style="font-size:8px; letter-spacing:3px; color:rgba(212,175,55,0.5); margin:0; text-transform:uppercase;">${reading.seeker}</p>
-        </div>
-        <div style="text-align:center;">
-          <p style="font-size:8px; letter-spacing:3px; color:rgba(212,175,55,0.5); margin:0; text-transform:uppercase;">${reading.intention}</p>
-        </div>
-        <div style="text-align:right;">
-          <p style="font-size:8px; letter-spacing:3px; color:rgba(212,175,55,0.5); margin:0;">${dateStr}</p>
-        </div>
+    <!-- RIGHT: 3-section layout: Header | Centered Body | Footer -->
+    <div style="width:55%; height:100%; display:flex; flex-direction:column; overflow:hidden; text-align:center;">
+
+      <!-- TOP LINE: Seeker + Date only -->
+      <div style="flex-shrink:0; padding:14px 48px 0 48px; display:flex; justify-content:space-between; align-items:center;">
+        <p style="font-family:'Cinzel',serif; font-size:8px; letter-spacing:3px; color:rgba(212,175,55,0.5); margin:0; text-transform:uppercase;">${reading.seeker}</p>
+        <p style="font-family:'Cinzel',serif; font-size:8px; letter-spacing:3px; color:rgba(212,175,55,0.5); margin:0;">${dateStr}</p>
       </div>
 
-      <!-- Two Columns -->
-      <div style="flex:1; display:flex; overflow:hidden;">
-        <!-- Col 1: Sacred Text -->
-        <div style="flex:1; padding:20px 18px; border-right:1px solid rgba(212,175,55,0.15); overflow:hidden; display:flex; flex-direction:column; justify-content:center; text-align:center;">
-          <h4 style="font-family:'Cinzel',serif; font-size:9px; color:#D4AF37; letter-spacing:4px; margin:0 0 10px 0; text-transform:uppercase;">Purpose</h4>
-          <p style="font-family:'Cormorant Garamond',serif; font-size:13px; line-height:1.6; font-style:italic; color:#e8dcc8; margin:0 0 16px 0;">${reading.card.purpose}</p>
+      <!-- BODY -->
+      <div style="flex:1; display:flex; flex-direction:column; justify-content:flex-start; align-items:center; padding:8px 48px; overflow:hidden;">
 
-          <h4 style="font-family:'Cinzel',serif; font-size:9px; color:#D4AF37; letter-spacing:4px; margin:0 0 10px 0; text-transform:uppercase;">Meaning</h4>
-          <p style="font-family:'Cormorant Garamond',serif; font-size:13px; line-height:1.6; color:#dcd0bc; margin:0 0 16px 0;">${reading.card.meaning}</p>
+        <!-- Intention (small italic, centered) -->
+        <p style="font-family:'Cormorant Garamond',serif; font-size:13px; font-style:italic; letter-spacing:2px; color:rgba(212,175,55,0.7); margin:0 0 16px 0; text-transform:uppercase;">${reading.intention}</p>
 
-          <div style="background:linear-gradient(135deg,rgba(45,20,80,0.3),rgba(10,12,26,0.5)); border:1px solid rgba(212,175,55,0.2); border-radius:10px; padding:12px 14px;">
-            <h4 style="font-family:'Cinzel',serif; font-size:8px; color:#D4AF37; letter-spacing:4px; margin:0 0 6px 0; text-transform:uppercase;">Mantra</h4>
-            <p style="font-family:'Cormorant Garamond',serif; font-size:12px; font-style:italic; color:#f0d060; margin:0; line-height:1.4;">&ldquo;${reading.card.mantra}&rdquo;</p>
+        <!-- Purpose -->
+        <h4 style="font-family:'Cinzel',serif; font-size:8px; color:#D4AF37; letter-spacing:4px; THIS_WONT_MATCH width:100%;">${reading.card.purpose}</p>
+
+        <!-- Meaning -->
+        <h4 style="font-family:'Cinzel',serif; font-size:8px; color:#D4AF37; letter-spacing:4px; margin:0 0 5px 0; text-transform:uppercase;">Meaning</h4>
+        <p style="font-family:'Cormorant Garamond',serif; font-size:11px; line-height:1.45; color:#dcd0bc; margin:0 0 24px 0; width:100%;">${reading.card.meaning}</p>
+
+        <!-- Mantra -->
+        <div style="background:linear-gradient(135deg,rgba(45,20,80,0.3),rgba(10,12,26,0.5)); border:1px solid rgba(212,175,55,0.2); border-radius:10px; padding:14px 20px; margin-bottom:28px; width:100%;">
+          <h4 style="font-family:'Cinzel',serif; font-size:7px; color:#D4AF37; letter-spacing:4px; margin:0 0 3px 0; text-transform:uppercase;">Mantra</h4>
+          <p style="font-family:'Cormorant Garamond',serif; font-size:11px; font-style:italic; color:#f0d060; margin:0; line-height:1.3;">&ldquo;${reading.card.mantra}&rdquo;</p>
+        </div>
+
+        <!-- AI Synthesis + Pollinations -->
+        ${synthesis ? `
+          <div style="width:100%;">
+            <span style="color:#D4AF37; font-size:12px;">&#10022;</span>
+            <h4 style="font-family:'Cinzel',serif; font-size:8px; color:#D4AF37; letter-spacing:3px; margin:3px 0 5px 0; text-transform:uppercase;">Your Personal Reading</h4>
+            <p style="font-family:'Cormorant Garamond',serif; font-size:10px; line-height:1.45; color:#dcd0bc; margin:0 0 10px 0; white-space:pre-line; width:100%;">${synthesis}</p>
+            <p style="font-size:7px; letter-spacing:2px; margin:0; color:rgba(212,175,55,0.25);">Powered by Pollinations.ai</p>
           </div>
-        </div>
+        ` : ``}
 
-        <!-- Col 2: AI Synthesis -->
-        <div style="flex:1; padding:20px 18px; display:flex; flex-direction:column; justify-content:center; text-align:center;">
-          ${synthesis ? `
-            <div style="margin-bottom:12px;">
-              <span style="color:#D4AF37; font-size:14px;">&#10022;</span>
-              <h4 style="font-family:'Cinzel',serif; font-size:9px; color:#D4AF37; letter-spacing:3px; margin:6px 0 0 0; text-transform:uppercase;">Your Personal Reading</h4>
-            </div>
-            <p style="font-family:'Cormorant Garamond',serif; font-size:13px; line-height:1.7; color:#dcd0bc; margin:0; white-space:pre-line;">${synthesis}</p>
-          ` : `
-            <p style="font-family:'Cormorant Garamond',serif; font-size:13px; font-style:italic; color:rgba(212,175,55,0.4); margin:0;">Your personal reading</p>
-          `}
-        </div>
       </div>
 
-      <!-- Footer -->
-      <div style="padding:12px 24px; border-top:1px solid rgba(212,175,55,0.15); display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
-        <p style="font-size:9px; letter-spacing:5px; text-transform:uppercase; margin:0; color:rgba(212,175,55,0.35);">Tessera Lumen</p>
-        <p style="font-size:8px; letter-spacing:2px; margin:0; color:rgba(212,175,55,0.3);">Powered by Pollinations.ai</p>
+      <!-- SECTION 3: BOTTOM FOOTER (pinned) -->
+      <div style="flex-shrink:0; padding:14px 48px; border-top:1px solid rgba(212,175,55,0.15); display:flex; justify-content:space-between; align-items:center;">
+        <p style="font-family:'Cinzel',serif; font-size:9px; letter-spacing:5px; text-transform:uppercase; margin:0; color:rgba(212,175,55,0.35);">Tessera Lumen</p>
+        <p style="font-size:8px; letter-spacing:2px; margin:0; color:rgba(212,175,55,0.25);">Powered by Pollinations.ai</p>
       </div>
+
     </div>
   `;
 

@@ -17,21 +17,25 @@ async function fetchImageAsBase64(url) {
   }
 }
 
-function buildCompositionDOM(reading, cardImageBase64) {
+/**
+ * Build a single card export: A (front) + B (back) SIDE BY SIDE — landscape
+ * Left half: Card artwork (full bleed)
+ * Right half: Two-column content (sacred text | AI synthesis)
+ */
+function buildCardExportDOM(reading, cardImageBase64, synthesis) {
   const container = document.createElement("div");
   container.style.cssText = `
-    width: 900px;
+    width: 1400px;
+    height: 900px;
     background: #060810;
     color: #f0e8d8;
     font-family: 'Cinzel', serif;
-    padding: 60px 56px 56px;
     position: relative;
     box-sizing: border-box;
     border: 3px solid rgba(212,175,55,0.4);
-    border-radius: 24px;
+    border-radius: 20px;
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    overflow: hidden;
   `;
 
   const dateStr = new Date(reading.timestamp).toLocaleDateString("en-GB", {
@@ -39,100 +43,96 @@ function buildCompositionDOM(reading, cardImageBase64) {
   });
 
   container.innerHTML = `
-    <!-- SEEKER HEADER -->
-    <div style="width:100%; background:rgba(255,255,255,0.03); border:1px solid rgba(212,175,55,0.2); border-radius:16px; padding:28px 36px; margin-bottom:52px; box-sizing:border-box; display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <p style="font-size:11px; letter-spacing:5px; color:rgba(212,175,55,0.6); margin:0 0 6px 0; text-transform:uppercase;">The Seeker</p>
-        <p style="font-size:28px; font-weight:bold; color:#fff; margin:0; letter-spacing:1px;">${reading.seeker}</p>
-      </div>
-      <div style="text-align:center;">
-        <p style="font-size:11px; letter-spacing:5px; color:rgba(212,175,55,0.6); margin:0 0 6px 0; text-transform:uppercase;">Your Intention</p>
-        <p style="font-size:20px; color:#f0e8d8; margin:0; font-family:'Cormorant Garamond',serif; font-style:italic;">${reading.intention}</p>
-      </div>
-      <div style="text-align:right;">
-        <p style="font-size:11px; letter-spacing:5px; color:rgba(212,175,55,0.6); margin:0 0 6px 0; text-transform:uppercase;">Date</p>
-        <p style="font-size:18px; color:#f0e8d8; margin:0; font-family:'Cormorant Garamond',serif;">${dateStr}</p>
+    <!-- LEFT: Card Artwork (A) -->
+    <div style="width:45%; height:100%; position:relative; overflow:hidden; border-right:2px solid rgba(212,175,55,0.3);">
+      ${cardImageBase64
+        ? `<img src="${cardImageBase64}" style="width:100%; height:100%; object-fit:cover; display:block;" />`
+        : `<div style="width:100%; height:100%; background:#1a1535; display:flex; align-items:center; justify-content:center;"><p style="color:#D4AF37; font-size:48px; font-weight:bold;">${reading.card.number}</p></div>`
+      }
+      <!-- Overlay with card number + title at bottom -->
+      <div style="position:absolute; bottom:0; left:0; right:0; padding:24px 20px; background:linear-gradient(to top, rgba(6,8,16,0.95) 0%, rgba(6,8,16,0.7) 60%, transparent 100%);">
+        <p style="font-size:48px; color:#f0d060; font-weight:bold; margin:0 0 4px 0; text-shadow:0 0 20px rgba(212,175,55,0.5);">${reading.card.number}</p>
+        <h2 style="font-size:20px; color:#D4AF37; letter-spacing:4px; margin:0 0 2px 0; text-transform:uppercase;">${reading.card.title}</h2>
+        <p style="font-size:10px; letter-spacing:4px; color:rgba(212,175,55,0.5); margin:0; text-transform:uppercase;">${reading.card.pillar}</p>
       </div>
     </div>
 
-    <!-- CARD NUMBER -->
-    <div style="text-align:center; margin-bottom:8px;">
-      <span style="font-size:110px; color:#f0d060; font-weight:bold; line-height:0.9; display:block; text-shadow:0 0 40px rgba(212,175,55,0.5);">${reading.card.number}</span>
-    </div>
-
-    <!-- GOLD LINE -->
-    <div style="height:2px; width:280px; background:linear-gradient(to right,transparent,#D4AF37,transparent); margin:20px auto 24px;"></div>
-
-    <!-- CARD TITLE -->
-    <h1 style="font-size:58px; color:#D4AF37; margin:0 0 12px 0; letter-spacing:10px; font-weight:700; text-transform:uppercase; text-align:center; text-shadow:0 0 20px rgba(212,175,55,0.3);">${reading.card.title}</h1>
-
-    <!-- PILLAR -->
-    <p style="font-size:18px; letter-spacing:8px; color:rgba(212,175,55,0.6); margin:0 0 52px 0; text-transform:uppercase; text-align:center;">${reading.card.pillar}</p>
-
-        <!-- PURPOSE: full width above -->
-    <div style="width:100%; margin-bottom:40px;">
-      <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
-        <div style="width:30px; height:1px; background:rgba(212,175,55,0.4);"></div>
-        <h3 style="font-family:'Cinzel',serif; font-size:20px; color:#D4AF37; letter-spacing:6px; margin:0; text-transform:uppercase;">Purpose</h3>
-        <div style="flex-grow:1; height:1px; background:rgba(212,175,55,0.3);"></div>
-      </div>
-      <p style="font-family:'Cormorant Garamond',serif; font-size:28px; line-height:1.7; font-style:italic; color:#e8dcc8; margin:0; text-align:justify;">${reading.card.purpose}</p>
-    </div>
-
-    <!-- IMAGE LEFT + MEANING RIGHT -->
-    <div style="display:table; width:100%; margin-bottom:52px; border-spacing:0;">
-      <div style="display:table-cell; width:380px; vertical-align:middle; padding-right:40px;">
-        ${cardImageBase64
-          ? `<img src="${cardImageBase64}" style="width:100%; border-radius:18px; border:3px solid rgba(212,175,55,0.35); box-shadow:0 20px 60px rgba(0,0,0,0.9); display:block;" />`
-          : `<div style="width:100%; aspect-ratio:2/3; background:#1a1535; border-radius:18px; border:2px dashed rgba(212,175,55,0.3); display:flex; align-items:center; justify-content:center;"><p style="color:#D4AF37; font-size:20px;">${reading.card.number}</p></div>`
-        }
-      </div>
-      <div style="display:table-cell; vertical-align:middle; font-family:'Cormorant Garamond',serif;">
-        <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
-          <div style="width:30px; height:1px; background:rgba(212,175,55,0.4);"></div>
-          <h3 style="font-family:'Cinzel',serif; font-size:20px; color:#D4AF37; letter-spacing:6px; margin:0; text-transform:uppercase;">Meaning</h3>
-          <div style="flex-grow:1; height:1px; background:rgba(212,175,55,0.3);"></div>
+    <!-- RIGHT: Card Back (B) - Sacred Text + AI Synthesis -->
+    <div style="width:55%; height:100%; display:flex; flex-direction:column; overflow:hidden;">
+      <!-- Header -->
+      <div style="padding:16px 24px; border-bottom:1px solid rgba(212,175,55,0.15); display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+        <div>
+          <p style="font-size:8px; letter-spacing:3px; color:rgba(212,175,55,0.5); margin:0; text-transform:uppercase;">${reading.seeker}</p>
         </div>
-        <p style="font-size:24px; line-height:1.75; color:#dcd0bc; margin:0; text-align:justify;">${reading.card.meaning}</p>
+        <div style="text-align:center;">
+          <p style="font-size:8px; letter-spacing:3px; color:rgba(212,175,55,0.5); margin:0; text-transform:uppercase;">${reading.intention}</p>
+        </div>
+        <div style="text-align:right;">
+          <p style="font-size:8px; letter-spacing:3px; color:rgba(212,175,55,0.5); margin:0;">${dateStr}</p>
+        </div>
       </div>
-    </div>
 
-    <!-- MANTRA PANEL -->
-    <div style="width:100%; background:linear-gradient(135deg,rgba(45,20,80,0.6),rgba(10,12,26,0.8)); border:2px solid rgba(212,175,55,0.45); border-radius:28px; padding:52px 60px; margin-bottom:52px; text-align:center; box-sizing:border-box; box-shadow:inset 0 0 40px rgba(212,175,55,0.1);">
-      <div style="display:flex; align-items:center; gap:20px; margin-bottom:28px;">
-        <div style="flex:1; height:1px; background:linear-gradient(to right,transparent,rgba(212,175,55,0.4));"></div>
-        <h4 style="font-size:16px; color:#D4AF37; letter-spacing:10px; margin:0; text-transform:uppercase;">The Sacred Mantra</h4>
-        <div style="flex:1; height:1px; background:linear-gradient(to left,transparent,rgba(212,175,55,0.4));"></div>
+      <!-- Two Columns -->
+      <div style="flex:1; display:flex; overflow:hidden;">
+        <!-- Col 1: Sacred Text -->
+        <div style="flex:1; padding:20px 18px; border-right:1px solid rgba(212,175,55,0.15); overflow:hidden; display:flex; flex-direction:column; justify-content:center; text-align:center;">
+          <h4 style="font-family:'Cinzel',serif; font-size:9px; color:#D4AF37; letter-spacing:4px; margin:0 0 10px 0; text-transform:uppercase;">Purpose</h4>
+          <p style="font-family:'Cormorant Garamond',serif; font-size:13px; line-height:1.6; font-style:italic; color:#e8dcc8; margin:0 0 16px 0;">${reading.card.purpose}</p>
+
+          <h4 style="font-family:'Cinzel',serif; font-size:9px; color:#D4AF37; letter-spacing:4px; margin:0 0 10px 0; text-transform:uppercase;">Meaning</h4>
+          <p style="font-family:'Cormorant Garamond',serif; font-size:13px; line-height:1.6; color:#dcd0bc; margin:0 0 16px 0;">${reading.card.meaning}</p>
+
+          <div style="background:linear-gradient(135deg,rgba(45,20,80,0.3),rgba(10,12,26,0.5)); border:1px solid rgba(212,175,55,0.2); border-radius:10px; padding:12px 14px;">
+            <h4 style="font-family:'Cinzel',serif; font-size:8px; color:#D4AF37; letter-spacing:4px; margin:0 0 6px 0; text-transform:uppercase;">Mantra</h4>
+            <p style="font-family:'Cormorant Garamond',serif; font-size:12px; font-style:italic; color:#f0d060; margin:0; line-height:1.4;">&ldquo;${reading.card.mantra}&rdquo;</p>
+          </div>
+        </div>
+
+        <!-- Col 2: AI Synthesis -->
+        <div style="flex:1; padding:20px 18px; display:flex; flex-direction:column; justify-content:center; text-align:center;">
+          ${synthesis ? `
+            <div style="margin-bottom:12px;">
+              <span style="color:#D4AF37; font-size:14px;">&#10022;</span>
+              <h4 style="font-family:'Cinzel',serif; font-size:9px; color:#D4AF37; letter-spacing:3px; margin:6px 0 0 0; text-transform:uppercase;">Your Personal Reading</h4>
+            </div>
+            <p style="font-family:'Cormorant Garamond',serif; font-size:13px; line-height:1.7; color:#dcd0bc; margin:0; white-space:pre-line;">${synthesis}</p>
+          ` : `
+            <p style="font-family:'Cormorant Garamond',serif; font-size:13px; font-style:italic; color:rgba(212,175,55,0.4); margin:0;">Your personal reading</p>
+          `}
+        </div>
       </div>
-      <p style="font-family:'Cormorant Garamond',serif; font-size:44px; font-style:italic; color:#f0d060; margin:0; line-height:1.4; font-weight:500;">&ldquo;${reading.card.mantra}&rdquo;</p>
-    </div>
 
-    <!-- FOOTER -->
-    <div style="text-align:center; border-top:1px solid rgba(212,175,55,0.15); padding-top:36px; width:100%;">
-      <p style="font-size:14px; letter-spacing:10px; text-transform:uppercase; margin:0; color:rgba(212,175,55,0.4);">Tessera Lumen &bull; Oracle of the Soul</p>
-      <p style="font-size:10px; margin-top:12px; opacity:0.2; letter-spacing:3px;">&copy; 2026 Personal Sacred Record</p>
+      <!-- Footer -->
+      <div style="padding:12px 24px; border-top:1px solid rgba(212,175,55,0.15); display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+        <p style="font-size:9px; letter-spacing:5px; text-transform:uppercase; margin:0; color:rgba(212,175,55,0.35);">Tessera Lumen</p>
+        <p style="font-size:8px; letter-spacing:2px; margin:0; color:rgba(212,175,55,0.3);">Powered by Pollinations.ai</p>
+      </div>
     </div>
   `;
 
   return container;
 }
 
-export async function renderReadingCard(reading) {
+/**
+ * Render a single card to a landscape JPG (A+B side by side)
+ */
+export async function renderReadingCard(reading, synthesis) {
   console.log("[Export] Starting render...");
   const cardImageBase64 = await fetchImageAsBase64(reading.card.image);
-  const dom = buildCompositionDOM(reading, cardImageBase64);
+  const dom = buildCardExportDOM(reading, cardImageBase64, synthesis);
   dom.style.position = "absolute";
   dom.style.left = "-9999px";
   dom.style.top = "0";
   document.body.appendChild(dom);
 
   try {
-    await new Promise(r => setTimeout(r, 1200));
+    await new Promise(r => setTimeout(r, 1000));
     const canvas = await html2canvas(dom, {
       scale: 1,
       useCORS: true,
       backgroundColor: "#060810",
-      width: 900,
+      width: 1400,
+      height: 900,
       logging: false
     });
 
@@ -158,8 +158,29 @@ export async function renderReadingCard(reading) {
   }
 }
 
-export async function dispatchExport(reading) {
-  const { blob, dataUrl, filename } = reading.export;
+/**
+ * Render multiple cards — each as its own A+B landscape image
+ * Returns array of export objects
+ */
+export async function renderSpreadCards(readings, syntheses) {
+  console.log("[Export] Starting spread render...", readings.length, "cards");
+  const results = [];
+
+  for (let i = 0; i < readings.length; i++) {
+    const reading = readings[i];
+    const synthesis = syntheses[i] || null;
+    const result = await renderReadingCard(reading, synthesis);
+    results.push(result);
+  }
+
+  return results;
+}
+
+/**
+ * Dispatch a single export (download or share)
+ */
+export async function dispatchExport(exportData) {
+  const { blob, dataUrl, filename } = exportData.export || exportData;
   if (!blob) return false;
 
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -171,7 +192,7 @@ export async function dispatchExport(reading) {
         await navigator.share({
           files: [file],
           title: "Tessera Lumen Sacred Record",
-          text: `My Oracle Reading: ${reading.card.title}`
+          text: `My Oracle Reading`
         });
         return true;
       } catch (e) {
@@ -187,5 +208,19 @@ export async function dispatchExport(reading) {
   document.body.appendChild(a);
   a.click();
   setTimeout(() => document.body.removeChild(a), 300);
+  return true;
+}
+
+/**
+ * Dispatch multiple exports (one per card) — bundle download
+ */
+export async function dispatchBundleExport(exportDataArray) {
+  for (let i = 0; i < exportDataArray.length; i++) {
+    await dispatchExport(exportDataArray[i]);
+    // Small delay between downloads to avoid browser blocking
+    if (i < exportDataArray.length - 1) {
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
   return true;
 }

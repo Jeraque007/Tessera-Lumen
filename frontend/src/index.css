@@ -1,5 +1,37 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/cinzel-regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/cinzel-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/cormorant-regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/cormorant-italic.woff2') format('woff2');
+}
+
 @theme {
   --font-cinzel: "Cinzel", serif;
   --font-cormorant: "Cormorant Garamond", serif;
@@ -16,7 +48,7 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
 
 body {
   font-family: "Cormorant Garamond", Georgia, serif;
-  background: #060810;
+  background: transparent;
   color: #f0e8d8;
   -webkit-font-smoothing: antialiased;
 }
@@ -63,13 +95,13 @@ body {
   position: fixed;
   inset: 0;
   z-index: -10;
-  background-image: url("/bg.webp");
+  background-image: url("/bg-sophia.jpg");
   background-size: cover;
   background-position: center top;
   background-color: #060810;
 }
 
-/* Layered Cinematic Background */
+/* Restored Layered Cinematic Background */
 .nebula-layer-1 {
   position: fixed;
   inset: -20%;
@@ -145,81 +177,15 @@ body {
   50% { opacity: 0.7; transform: scale(1.02); }
 }
 
-/* Cinematic Cosmic Diamond Stars (Dual-Axis Sparkle) */
-.diamond-star {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  background: #fff;
-  border-radius: 50%;
-  box-shadow:
-    0 0 15px 2px #fff,
-    0 0 30px 5px rgba(173, 216, 230, 0.4); /* Subtle cyan-white bloom from reference */
-  animation: diamondSparkle 8s ease-in-out infinite;
-  will-change: transform, opacity;
-  mix-blend-mode: screen;
-  pointer-events: none;
+/* Cinematic Twinkle & Glow */
+.star-twinkle {
+  animation: twinkle 4s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4));
 }
 
-/* 8-Point Diffraction Spikes (Reference: Last Image) */
-.diamond-star::before,
-.diamond-star::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-/* Horizontal & Vertical Primary Sharp Spikes (Strongest) */
-.diamond-star::before {
-  width: 160px;
-  height: 2px;
-  background: radial-gradient(circle, #fff 0%, rgba(255,255,255,0.8) 10%, transparent 70%);
-  box-shadow: 0 0 8px #fff;
-}
-
-/* Vertical Primary Sharp Spike */
-.diamond-star::after {
-  width: 2px;
-  height: 160px;
-  background: radial-gradient(circle, #fff 0%, rgba(255,255,255,0.8) 10%, transparent 70%);
-  box-shadow: 0 0 8px #fff;
-}
-
-/* Diagonal Secondary Spikes (The 'X' shape in the background) */
-.diamond-star-secondary {
-  position: absolute;
-  inset: 0;
-  transform: rotate(45deg);
-}
-
-.diamond-star-secondary::before,
-.diamond-star-secondary::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.diamond-star-secondary::before { width: 80px; height: 1px; }
-.diamond-star-secondary::after { width: 1px; height: 80px; }
-
-@keyframes diamondSparkle {
-  0%, 100% {
-    opacity: 0;
-    transform: scale(0.1) rotate(0deg);
-  }
-  35%, 65% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1) rotate(15deg);
-    filter: brightness(2.5) contrast(1.2);
-  }
+@keyframes twinkle {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.7)); }
 }
 
 .pulse-glow {
@@ -240,21 +206,6 @@ body {
   padding: 14px 16px;
   color: #f0e8d8;
   outline: none;
-}
-
-@keyframes bgBreath {
-  0%, 100% { transform: scale(1.05); opacity: 0.35; }
-  50% { transform: scale(1.1); opacity: 0.5; }
-}
-
-@keyframes nebulaFlow {
-  0% { transform: scale(1); }
-  100% { transform: scale(1.1); }
-}
-
-@keyframes orbDrift {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(-15px); }
 }
 
 @keyframes fadeInUp {
@@ -312,6 +263,19 @@ body {
 @keyframes shimmer {
   0% { left: -100%; }
   100% { left: 100%; }
+}
+
+@keyframes vibrate {
+  0%, 100% { transform: translateX(0); }
+  10% { transform: translateX(-1px) rotate(-0.5deg); }
+  20% { transform: translateX(1px) rotate(0.5deg); }
+  30% { transform: translateX(-1px) rotate(-0.3deg); }
+  40% { transform: translateX(1px) rotate(0.3deg); }
+  50% { transform: translateX(-0.5px); }
+  60% { transform: translateX(0.5px); }
+  70% { transform: translateX(-0.5px); }
+  80% { transform: translateX(0.5px); }
+  90% { transform: translateX(-0.3px); }
 }
 
 @keyframes glowPulse {

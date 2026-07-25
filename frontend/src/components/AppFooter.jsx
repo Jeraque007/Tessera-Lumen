@@ -30,7 +30,7 @@ export default function AppFooter() {
   );
 
   const dot = (
-    <span style={{ color: "rgba(212,175,55,0.2)", fontSize: "0.5rem", margin: "0 2px" }}></span>
+    <span style={{ color: "rgba(212,175,55,0.2)", fontSize: "0.5rem", margin: "0 2px" }}>•</span>
   );
 
   return (

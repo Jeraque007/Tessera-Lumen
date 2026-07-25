@@ -1,21 +1,20 @@
 ﻿import { useState } from "react";
-import { exportCardAsJPG, shareCardViaWhatsApp, nativeShareJPG } from "../utils/jpgExport.js";
-import { isIOS } from "../utils/download.js";
+import { shareCardViaWhatsApp, sendEmailReading } from "../utils/jpgExport.js";
 
-export default function ExportPanel({ user, intention, cards, positions, phone }) {
+export default function ExportPanel({ user, intention, cards, positions, email, phone }) {
   const [status, setStatus] = useState("idle"); // idle | generating | done | error
 
   const tel = (phone || "").replace(/\D/g, "");
   const hasPhone = tel.length >= 7;
 
-  const handleSaveJPG = async (card, position) => {
+  const handleEmailAndSave = async (card, position) => {
     setStatus("generating");
     try {
-      await exportCardAsJPG(card, position || null, intention, user?.name || "");
+      await sendEmailReading(card, position || null, intention, user?.name || "", email || user?.email || "");
       setStatus("done");
       setTimeout(() => setStatus("idle"), 3000);
     } catch (err) {
-      console.error("JPG export error:", err);
+      console.error("Export error:", err);
       setStatus("error");
       setTimeout(() => setStatus("idle"), 3000);
     }
@@ -34,84 +33,80 @@ export default function ExportPanel({ user, intention, cards, positions, phone }
     }
   };
 
-  const btnStyle = (active, color = "#D4AF37") => ({
+  const btnStyle = (color = "#D4AF37") => ({
     width: "100%",
-    padding: "14px 18px",
-    borderRadius: "12px",
-    border: `1px solid ${active ? "rgba(212,175,55,0.6)" : "rgba(212,175,55,0.3)"}`,
-    background: active ? "rgba(212,175,55,0.14)" : "rgba(212,175,55,0.05)",
-    color: active ? "#f0d060" : color,
+    padding: "16px 20px",
+    borderRadius: "14px",
+    border: "1px solid rgba(212,175,55,0.3)",
+    background: "rgba(212,175,55,0.06)",
+    color: color,
     cursor: status === "generating" ? "default" : "pointer",
     touchAction: "manipulation",
     WebkitTapHighlightColor: "transparent",
-    minHeight: "52px",
+    minHeight: "60px",
     display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
     alignItems: "center",
-    gap: "12px",
+    gap: "2px",
     outline: "none",
     WebkitAppearance: "none",
     transition: "all 0.2s ease",
     fontFamily: "Cinzel, serif",
-    fontSize: "0.72rem",
-    fontWeight: "700",
-    letterSpacing: "0.15em",
-    textTransform: "uppercase",
+    textAlign: "center"
   });
 
   const isGenerating = status === "generating";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
+    <div className="flex flex-col gap-3 w-full">
 
       {/* Section label */}
-      <div style={{ display:"flex", alignItems:"center", gap:"10px", marginBottom:"4px" }}>
-        <div style={{ flex:1, height:"1px", background:"linear-gradient(to right,transparent,rgba(212,175,55,0.25))" }} />
-        <span style={{ fontFamily:"Cinzel,serif", fontSize:"0.6rem", letterSpacing:"0.28em", color:"rgba(212,175,55,0.5)", textTransform:"uppercase" }}>
-          Save Your Reading
+      <div className="flex items-center gap-3 mb-1">
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent to-[#D4AF37]/25" />
+        <span className="font-cinzel text-[10px] tracking-[0.28em] text-[#D4AF37]/50 uppercase">
+          Share Your Reading
         </span>
-        <div style={{ flex:1, height:"1px", background:"linear-gradient(to left,transparent,rgba(212,175,55,0.25))" }} />
+        <div className="flex-1 h-px bg-gradient-to-l from-transparent to-[#D4AF37]/25" />
       </div>
 
       {cards.map((card, i) => {
         const position = positions && positions[i] ? positions[i] : null;
-        const label = cards.length > 1
-          ? `Save ${position || card.title} as JPG`
-          : "Save Reading as JPG";
+        const mainLabel = cards.length > 1
+          ? `Email & Save ${position || card.title}`
+          : "Email Reading & Save to Library";
+
         return (
-          <div key={card.number} style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
-            {/* Download JPG */}
+          <div key={card.number} className="flex flex-col gap-3">
+            {/* Download JPG + Email */}
             <button
-              onClick={() => handleSaveJPG(card, position)}
+              onClick={() => handleEmailAndSave(card, position)}
               disabled={isGenerating}
-              style={btnStyle(false)}
+              style={btnStyle()}
+              className="hover:bg-[#D4AF37]/10 active:scale-[0.98] transition-transform"
             >
-              <span style={{ fontSize:"1.1rem", flexShrink:0 }}>&#128247;</span>
-              <div style={{ flex:1, minWidth:0 }}>
-                <p style={{ margin:0, fontFamily:"Cinzel,serif", fontSize:"0.72rem", fontWeight:"700", letterSpacing:"0.15em", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
-                  {isGenerating ? "Generating..." : label}
-                </p>
-                <p style={{ margin:"2px 0 0", fontFamily:"Cormorant Garamond,serif", fontSize:"0.8rem", color:"rgba(240,232,216,0.4)", fontStyle:"italic" }}>
-                  {isIOS() ? "Opens in Safari  tap Share to save" : "Saves to your device"}
-                </p>
-              </div>
+              <p className="m-0 font-cinzel text-[11px] font-bold tracking-[0.15em] uppercase">
+                {isGenerating ? "Processing..." : mainLabel}
+              </p>
+              <p className="m-0 font-cormorant text-[13px] text-[#f0e8d8]/40 italic">
+                JPG automatically saves to your library
+              </p>
             </button>
 
-            {/* WhatsApp  share actual JPG image */}
+            {/* WhatsApp */}
             {hasPhone && (
               <button
                 onClick={() => handleWhatsApp(card, position)}
                 disabled={isGenerating}
-                style={btnStyle(false, "#25D366")}
+                style={btnStyle()}
+                className="hover:bg-[#D4AF37]/10 active:scale-[0.98] transition-transform"
               >
-                <span style={{ fontSize:"1.1rem", flexShrink:0 }}>&#128242;</span>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <p style={{ margin:0, fontFamily:"Cinzel,serif", fontSize:"0.72rem", fontWeight:"700", letterSpacing:"0.15em" }}>
-                    Share Image via WhatsApp
-                  </p>
-                  <p style={{ margin:"2px 0 0", fontFamily:"Cormorant Garamond,serif", fontSize:"0.8rem", color:"rgba(240,232,216,0.4)", fontStyle:"italic" }}>
-                    Sends the reading card as an image
-                  </p>
-                </div>
+                <p className="m-0 font-cinzel text-[11px] font-bold tracking-[0.15em] uppercase">
+                  Share to WhatsApp
+                </p>
+                <p className="m-0 font-cormorant text-[13px] text-[#f0e8d8]/40 italic">
+                  Sends the reading as an image attachment
+                </p>
               </button>
             )}
           </div>
@@ -119,19 +114,13 @@ export default function ExportPanel({ user, intention, cards, positions, phone }
       })}
 
       {status === "done" && (
-        <p style={{ textAlign:"center", fontFamily:"Cinzel,serif", fontSize:"0.65rem", letterSpacing:"0.2em", color:"rgba(212,175,55,0.7)", marginTop:"4px" }}>
-           Done
+        <p className="text-center font-cinzel text-[10px] tracking-[0.2em] text-[#D4AF37]/70 mt-1 animate-fade-in">
+           Success
         </p>
       )}
       {status === "error" && (
-        <p style={{ textAlign:"center", fontFamily:"Cormorant Garamond,serif", fontSize:"0.9rem", color:"rgba(248,113,113,0.8)", fontStyle:"italic", marginTop:"4px" }}>
-          Export failed  please try again
-        </p>
-      )}
-
-      {isIOS() && (
-        <p style={{ textAlign:"center", fontFamily:"Cormorant Garamond,serif", fontSize:"0.8rem", color:"rgba(240,232,216,0.35)", fontStyle:"italic", marginTop:"4px", lineHeight:1.5 }}>
-          On iPhone: tap the image then hold to save, or tap Share
+        <p className="text-center font-cormorant text-sm text-red-400/80 italic mt-1 animate-fade-in">
+          Failed  please try again
         </p>
       )}
     </div>

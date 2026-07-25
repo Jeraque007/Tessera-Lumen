@@ -4,6 +4,7 @@ import GoldButton from "../components/GoldButton.jsx";
 import Divider from "../components/Divider.jsx";
 import { useApp } from "../context/AppContext.jsx";
 import { useTranslation } from "react-i18next";
+import { apiUrl } from "../utils/apiBase.js";
 
 function formatDOB(raw) {
   const d = raw.replace(/\D/g, "").slice(0, 8);
@@ -24,7 +25,8 @@ export default function DetailsScreen() {
   const handleSubmit = async () => {
     if (!form.name.trim() || !form.email.trim()) { setError(t("detailsError")); return; }
     setError(""); setLoading(true); setUser(form);
-    try { await fetch("/api/crm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) }); } catch (_) {}
+    // Fire-and-forget CRM sync - never blocks user navigation
+    fetch(apiUrl("/api/crm"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) }).catch(() => {});
     setLoading(false); goTo("intention");
   };
 

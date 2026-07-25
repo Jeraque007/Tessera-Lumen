@@ -7,6 +7,9 @@ import es from "./locales/es.js";
 import fr from "./locales/fr.js";
 import de from "./locales/de.js";
 import pt from "./locales/pt.js";
+import ms from "./locales/ms.js";
+import ta from "./locales/ta.js";
+import zh from "./locales/zh.js";
 
 // Flatten nested objects for i18next (it uses dot notation)
 // We store translations as flat keys since our data includes arrays/objects
@@ -22,10 +25,13 @@ i18n
       fr: { translation: fr },
       de: { translation: de },
       pt: { translation: pt },
+      ms: { translation: ms },
+      ta: { translation: ta },
+      zh: { translation: zh },
     },
     // Auto-detect from browser, fallback to English
     fallbackLng: "en",
-    supportedLngs: ["en", "es", "fr", "de", "pt"],
+    supportedLngs: ["en", "es", "fr", "de", "pt", "ms", "ta", "zh"],
     // Detection order: localStorage -> navigator language -> htmlTag
     detection: {
       order: ["localStorage", "navigator", "htmlTag"],
@@ -47,4 +53,7 @@ export const SUPPORTED_LANGUAGES = [
   { code: "fr", label: "Francais",  flag: "FR" },
   { code: "de", label: "Deutsch",   flag: "DE" },
   { code: "pt", label: "Portugues", flag: "PT" },
+  { code: "ms", label: "Malay",     flag: "MS" },
+  { code: "ta", label: "Tamil",     flag: "TA" },
+  { code: "zh", label: "Chinese",   flag: "ZH" },
 ];

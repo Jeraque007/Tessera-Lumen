@@ -8,13 +8,7 @@
   --color-gold-dim: #8a7020;
   --color-cosmic: #0a0c1a;
   --color-deep: #060810;
-  --color-violet: #1a1535;
-  --color-teal: #1a3a4a;
-  --color-blue-deep: #0d1a2e;
-  --color-turquoise: #0e7490;
-  --color-purple: #7c3aed;
   --color-cream: #f0e8d8;
-  --color-cream-dim: #c8b898;
 }
 
 * { box-sizing: border-box; }
@@ -27,10 +21,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.3); border-radius: 2px; }
-
 .font-cinzel { font-family: "Cinzel", serif; }
 .font-cormorant { font-family: "Cormorant Garamond", serif; }
 
@@ -41,21 +31,24 @@ body {
   background-clip: text;
 }
 
-.bg-tp-gradient { background: linear-gradient(135deg, #0e7490, #7c3aed); }
-.bg-cosmic-blue { background: linear-gradient(135deg, #0d1a2e, #1a3a4a); }
-
-.glass {
-  background: rgba(255,255,255,0.06);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(212,175,55,0.2);
+.bg-tp-gradient {
+  background: linear-gradient(135deg, #0e7490, #7c3aed);
 }
 
-.glass-light {
-  background: rgba(255,255,255,0.07);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,0.12);
+.bg-cosmic-blue {
+  background: linear-gradient(135deg, #0d1a2e, #1a3a4a);
+}
+
+.glow-tp {
+  box-shadow: 0 0 24px rgba(124, 58, 237, 0.5), 0 0 48px rgba(14, 116, 144, 0.2);
+}
+
+.glow-cosmic {
+  box-shadow: 0 0 24px rgba(13, 26, 46, 0.8), 0 0 48px rgba(26, 58, 74, 0.4);
+}
+
+.glow-gold {
+  box-shadow: 0 0 24px rgba(212, 175, 55, 0.4), 0 0 48px rgba(212, 175, 55, 0.15);
 }
 
 .glass-gold {
@@ -66,109 +59,178 @@ body {
   box-shadow: inset 0 1px 0 rgba(212,175,55,0.08);
 }
 
-.glow-gold { box-shadow: 0 0 24px rgba(212,175,55,0.4), 0 0 48px rgba(212,175,55,0.15); }
-.glow-tp   { box-shadow: 0 0 24px rgba(124,58,237,0.5), 0 0 48px rgba(14,116,144,0.2); }
-.glow-cosmic { box-shadow: 0 0 24px rgba(13,26,46,0.8), 0 0 48px rgba(26,58,74,0.4); }
-
 .app-bg {
   position: fixed;
   inset: 0;
-  z-index: 0;
-  background-image: url("/bg.jpg");
+  z-index: -10;
+  background-image: url("/bg.webp");
   background-size: cover;
   background-position: center top;
-  background-repeat: no-repeat;
+  background-color: #060810;
 }
-.app-bg::after {
+
+/* Layered Cinematic Background */
+.nebula-layer-1 {
+  position: fixed;
+  inset: -20%;
+  z-index: -9;
+  background-image: url("/Nebula CSS.jpeg");
+  background-size: cover;
+  background-position: center;
+  mix-blend-mode: screen;
+  opacity: 0.35;
+  animation: nebulaDrift1 80s linear infinite;
+  will-change: transform;
+  filter: blur(2px);
+}
+
+.nebula-layer-2 {
+  position: fixed;
+  inset: -20%;
+  z-index: -8;
+  background-image: url("/Nebula CSS2.jpeg");
+  background-size: cover;
+  background-position: center;
+  mix-blend-mode: color-dodge;
+  opacity: 0.25;
+  animation: nebulaDrift2 60s linear infinite reverse;
+  will-change: transform;
+  filter: blur(4px);
+}
+
+.stars-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -7;
+  background-image: url("/CSS Stars.jpeg");
+  background-size: cover;
+  background-position: center;
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  animation: starsTwinkle 8s ease-in-out infinite alternate;
+  will-change: opacity;
+}
+
+.vignette-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -6;
+  background: radial-gradient(circle at 50% 50%, transparent 20%, rgba(6, 8, 16, 0.7) 100%);
+  pointer-events: none;
+}
+
+/* Base Gradient Overlay for depth */
+.cosmic-depth {
+  position: fixed;
+  inset: 0;
+  z-index: -5;
+  background: linear-gradient(to bottom, rgba(6, 8, 16, 0.2) 0%, rgba(10, 12, 26, 0.4) 50%, rgba(6, 8, 16, 0.8) 100%);
+  pointer-events: none;
+}
+
+@keyframes nebulaDrift1 {
+  0% { transform: scale(1) rotate(0deg) translate(0, 0); }
+  50% { transform: scale(1.1) rotate(5deg) translate(-2%, 2%); }
+  100% { transform: scale(1) rotate(0deg) translate(0, 0); }
+}
+
+@keyframes nebulaDrift2 {
+  0% { transform: scale(1.1) rotate(0deg); }
+  50% { transform: scale(1) rotate(-8deg) translate(2%, -2%); }
+  100% { transform: scale(1.1) rotate(0deg); }
+}
+
+@keyframes starsTwinkle {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.02); }
+}
+
+/* Cinematic Cosmic Diamond Stars (Dual-Axis Sparkle) */
+.diamond-star {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow:
+    0 0 15px 2px #fff,
+    0 0 30px 5px rgba(173, 216, 230, 0.4); /* Subtle cyan-white bloom from reference */
+  animation: diamondSparkle 8s ease-in-out infinite;
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+/* 8-Point Diffraction Spikes (Reference: Last Image) */
+.diamond-star::before,
+.diamond-star::after {
   content: "";
   position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, rgba(6,8,16,0.55) 0%, rgba(10,12,26,0.70) 40%, rgba(6,8,16,0.88) 80%, rgba(6,8,16,0.97) 100%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
-.nebula-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 60% 40% at 30% 60%, rgba(26,21,53,0.55) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 35% at 70% 30%, rgba(26,58,74,0.4) 0%, transparent 65%),
-    radial-gradient(ellipse 40% 30% at 50% 80%, rgba(10,12,26,0.6) 0%, transparent 60%);
+/* Horizontal & Vertical Primary Sharp Spikes (Strongest) */
+.diamond-star::before {
+  width: 160px;
+  height: 2px;
+  background: radial-gradient(circle, #fff 0%, rgba(255,255,255,0.8) 10%, transparent 70%);
+  box-shadow: 0 0 8px #fff;
 }
 
-.starfield {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
+/* Vertical Primary Sharp Spike */
+.diamond-star::after {
+  width: 2px;
+  height: 160px;
+  background: radial-gradient(circle, #fff 0%, rgba(255,255,255,0.8) 10%, transparent 70%);
+  box-shadow: 0 0 8px #fff;
 }
-.starfield::before {
+
+/* Diagonal Secondary Spikes (The 'X' shape in the background) */
+.diamond-star-secondary {
+  position: absolute;
+  inset: 0;
+  transform: rotate(45deg);
+}
+
+.diamond-star-secondary::before,
+.diamond-star-secondary::after {
   content: "";
   position: absolute;
-  inset: 0;
-  background-image:
-    radial-gradient(1px 1px at 8% 12%, rgba(255,255,255,0.85) 0%, transparent 100%),
-    radial-gradient(1px 1px at 22% 38%, rgba(255,255,255,0.55) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 38% 8%, rgba(255,255,255,0.75) 0%, transparent 100%),
-    radial-gradient(1px 1px at 52% 52%, rgba(255,255,255,0.45) 0%, transparent 100%),
-    radial-gradient(1px 1px at 67% 22%, rgba(255,255,255,0.65) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 82% 68%, rgba(255,255,255,0.75) 0%, transparent 100%),
-    radial-gradient(1px 1px at 12% 72%, rgba(255,255,255,0.55) 0%, transparent 100%),
-    radial-gradient(1px 1px at 91% 38%, rgba(255,255,255,0.45) 0%, transparent 100%),
-    radial-gradient(1px 1px at 33% 88%, rgba(255,255,255,0.65) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 62% 92%, rgba(255,255,255,0.55) 0%, transparent 100%),
-    radial-gradient(1px 1px at 76% 6%, rgba(255,255,255,0.75) 0%, transparent 100%),
-    radial-gradient(1px 1px at 45% 65%, rgba(255,255,255,0.45) 0%, transparent 100%),
-    radial-gradient(1px 1px at 94% 82%, rgba(255,255,255,0.55) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 28% 58%, rgba(255,255,255,0.65) 0%, transparent 100%),
-    radial-gradient(1px 1px at 58% 30%, rgba(255,255,255,0.45) 0%, transparent 100%),
-    radial-gradient(1px 1px at 18% 95%, rgba(255,255,255,0.35) 0%, transparent 100%),
-    radial-gradient(1px 1px at 72% 48%, rgba(255,255,255,0.55) 0%, transparent 100%),
-    radial-gradient(1px 1px at 5% 30%, rgba(212,175,55,0.4) 0%, transparent 100%),
-    radial-gradient(1px 1px at 88% 15%, rgba(212,175,55,0.3) 0%, transparent 100%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.3);
 }
 
-.particles {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image:
-    radial-gradient(1px 1px at 15% 25%, rgba(212,175,55,0.35) 0%, transparent 100%),
-    radial-gradient(1px 1px at 75% 15%, rgba(212,175,55,0.25) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 45% 65%, rgba(212,175,55,0.3) 0%, transparent 100%),
-    radial-gradient(1px 1px at 85% 75%, rgba(212,175,55,0.2) 0%, transparent 100%),
-    radial-gradient(1px 1px at 25% 85%, rgba(212,175,55,0.25) 0%, transparent 100%),
-    radial-gradient(1px 1px at 60% 40%, rgba(240,208,96,0.2) 0%, transparent 100%);
-  animation: particleDrift 12s ease-in-out infinite alternate;
+.diamond-star-secondary::before { width: 80px; height: 1px; }
+.diamond-star-secondary::after { width: 1px; height: 80px; }
+
+@keyframes diamondSparkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.1) rotate(0deg);
+  }
+  35%, 65% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(15deg);
+    filter: brightness(2.5) contrast(1.2);
+  }
 }
 
-.card-watermark {
-  position: absolute;
-  bottom: 8px;
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-family: "Cinzel", serif;
-  font-size: 7px;
-  letter-spacing: 0.25em;
-  color: rgba(138,112,32,0.45);
-  text-transform: uppercase;
-  pointer-events: none;
-  user-select: none;
+.pulse-glow {
+  animation: cardPulse 0.45s cubic-bezier(0.2, 0, 0.2, 1) both;
 }
 
-.logo-glow {
-  filter: drop-shadow(0 0 12px rgba(212,175,55,0.35)) drop-shadow(0 0 30px rgba(212,175,55,0.15));
+@keyframes cardPulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(212, 175, 55, 0)); }
+  50% { transform: scale(1.03); filter: drop-shadow(0 0 35px rgba(212, 175, 55, 0.85)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(212, 175, 55, 0)); }
 }
-
-.payment-grid {
-  display: flex;
-  gap: 1rem;
-  width: 100%;
-}
-.payment-grid > * { min-width: 0; }
 
 .tc-input {
   width: 100%;
@@ -177,172 +239,82 @@ body {
   border-radius: 12px;
   padding: 14px 16px;
   color: #f0e8d8;
-  font-family: "Cormorant Garamond", serif;
-  font-size: 1rem;
   outline: none;
-  transition: border-color 0.3s, box-shadow 0.3s;
-  -webkit-appearance: none;
 }
-.tc-input:focus {
-  border-color: rgba(212,175,55,0.55);
-  box-shadow: 0 0 0 3px rgba(212,175,55,0.08);
+
+@keyframes bgBreath {
+  0%, 100% { transform: scale(1.05); opacity: 0.35; }
+  50% { transform: scale(1.1); opacity: 0.5; }
 }
-.tc-input::placeholder { color: rgba(240,232,216,0.35); }
+
+@keyframes nebulaFlow {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.1); }
+}
+
+@keyframes orbDrift {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-15px); }
+}
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-@keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(212,175,55,0.35), 0 2px 8px rgba(0,0,0,0.4); }
-  50%       { box-shadow: 0 0 40px rgba(212,175,55,0.65), 0 0 60px rgba(212,175,55,0.2), 0 2px 8px rgba(0,0,0,0.4); }
-}
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-10px); }
-}
-@keyframes cardFlip {
-  0%   { transform: perspective(600px) rotateY(0deg); }
-  50%  { transform: perspective(600px) rotateY(90deg); }
-  100% { transform: perspective(600px) rotateY(0deg); }
-}
-@keyframes particleDrift {
-  0%   { transform: translateY(0px) translateX(0px); opacity: 0.6; }
-  50%  { transform: translateY(-6px) translateX(3px); opacity: 1; }
-  100% { transform: translateY(-3px) translateX(-2px); opacity: 0.7; }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-fade-in-up  { animation: fadeInUp 0.65s cubic-bezier(0.22,1,0.36,1) both; }
-.animate-fade-in     { animation: fadeIn 0.5s ease-out both; }
-.animate-glow-pulse  { animation: glowPulse 2.8s ease-in-out infinite; }
-.animate-float       { animation: float 4.5s ease-in-out infinite; }
-.animate-card-flip   { animation: cardFlip 0.8s ease-in-out; }
+.animate-fade-in-up { animation: fadeInUp 0.65s ease-out both; }
 
-.delay-100 { animation-delay: 0.1s; }
-.delay-200 { animation-delay: 0.2s; }
-.delay-300 { animation-delay: 0.3s; }
-.delay-400 { animation-delay: 0.4s; }
-.delay-500 { animation-delay: 0.5s; }
-.delay-600 { animation-delay: 0.6s; }
-
-/*  TarotCard responsive two-column layout  */
-/* Mobile: image full width, text below */
-.card-image-col {
-  width: 100% !important;
-  max-width: 100% !important;
-}
-.card-text-col {
-  width: 100%;
-  padding-left: 0 !important;
-  padding-top: 20px !important;
+/* Level 10: Smooth Slide Page Transition */
+.page-transition {
+  animation: pageSlideIn 0.5s cubic-bezier(0.25, 1, 0.5, 1) both;
 }
 
-/* Tablet and up: image left ~45%, text right ~55% */
-@media (min-width: 560px) {
-  .card-image-col {
-    width: 45% !important;
-    max-width: 45% !important;
-    flex: 0 0 45% !important;
+@keyframes pageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(15px);
+    filter: blur(5px);
   }
-  .card-text-col {
-    flex: 1 1 0 !important;
-    padding-left: 20px !important;
-    padding-top: 0 !important;
+  to {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
   }
 }
 
-/*  Mobile background lightening  */
-@media (max-width: 640px) {
-  body {
-    background: #0e0c1f;
-  }
-  .app-bg::after {
-    background: linear-gradient(
-      to bottom,
-      rgba(14,12,31,0.35) 0%,
-      rgba(18,14,38,0.50) 40%,
-      rgba(10,8,22,0.72) 75%,
-      rgba(8,6,18,0.90) 100%
-    );
-  }
-  .glass-gold {
-    background: rgba(22,18,48,0.72);
-  }
-  .starfield::before {
-    opacity: 0.7;
-  }
-}
+.animate-glow-pulse { animation: glowPulse 2.8s ease-in-out infinite; }
 
-/*  Desktop: wider container, cinematic spacing  */
-@media (min-width: 1024px) {
-  .max-w-md {
-    max-width: 860px !important;
-  }
-}
-@media (min-width: 768px) and (max-width: 1023px) {
-  .max-w-md {
-    max-width: 680px !important;
-  }
-}
-
-/*  Tarot artwork protection  */
-/* Prevents right-click save, long-press save on mobile, drag-to-desktop */
-.protected-image {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;  /* iOS long-press menu */
-  pointer-events: none;         /* blocks right-click and drag */
-  -webkit-user-drag: none;
-  -khtml-user-drag: none;
-  -moz-user-drag: none;
-  user-drag: none;
-}
-
-/* Invisible overlay blocks right-click on card images */
-.protected-image-wrapper {
+.shimmer {
   position: relative;
-  -webkit-user-select: none;
-  user-select: none;
+  overflow: hidden;
 }
-.protected-image-wrapper::after {
+
+.shimmer::after {
   content: "";
   position: absolute;
-  inset: 0;
-  z-index: 2;
-  background: transparent;
-  -webkit-touch-callout: none;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: none;
 }
 
-/* Watermark overlay on card images */
-.card-image-watermark {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 60px,
-    rgba(212,175,55,0.04) 60px,
-    rgba(212,175,55,0.04) 62px
-  );
+.shimmer:hover::after {
+  animation: shimmer 1.5s infinite;
 }
-.card-image-watermark span {
-  font-family: "Cinzel", serif;
-  font-size: 0.55rem;
-  letter-spacing: 0.3em;
-  color: rgba(212,175,55,0.18);
-  text-transform: uppercase;
-  transform: rotate(-30deg);
-  white-space: nowrap;
-  user-select: none;
-  pointer-events: none;
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(212,175,55,0.35); }
+  50% { box-shadow: 0 0 40px rgba(212,175,55,0.65); }
 }

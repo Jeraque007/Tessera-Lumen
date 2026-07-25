@@ -1,97 +1,114 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { Browser } from "@capacitor/browser";
 import ScreenWrapper from "../components/ScreenWrapper.jsx";
 import GoldButton from "../components/GoldButton.jsx";
 import CosmicButton from "../components/CosmicButton.jsx";
 import Divider from "../components/Divider.jsx";
 import { useApp } from "../context/AppContext.jsx";
 import { useTranslation } from "react-i18next";
-import { buyProduct, consumePurchase } from "../utils/huaweiIap.js";
-import { initiateDeeperPayment } from "../utils/payfast.js";
+import { processDeeperPayment } from "../services/PaymentEngine.js";
+import { getProductInfo, isHmsDevice } from "../utils/huaweiIap.js";
 
 export default function DeeperScreen() {
-  const { goTo, user, deeperPaid, setDeeperPaid, uploadedImage, setUploadedImage, paymentLoading, setPaymentPending } = useApp();
+  const { goTo, user, deeperPaid, setDeeperPaid, uploadedImage, setUploadedImage, resetSession } = useApp();
   const { t } = useTranslation();
-
   const [payProcessing, setPayProcessing] = useState(false);
   const [payError, setPayError] = useState("");
-  const [payDone, setPayDone] = useState(deeperPaid);
   const [confirmed, setConfirmed] = useState(false);
+  const [showGlowPrompt, setShowGlowPrompt] = useState(false);
+  const [hmsPrice, setHmsPrice] = useState("");
+  const [currencyData, setCurrencyData] = useState({ symbol: '$', rate: 1, code: 'USD' });
 
-  // Note: We don't necessarily redirect to welcome here because
-  // users can view this screen to DECIDE to pay.
-  // But we should ensure payDone is synced with deeperPaid from context.
+  // Derived directly from context - no local duplication
+  const payDone = deeperPaid;
 
   useEffect(() => {
-    setPayDone(deeperPaid);
-  }, [deeperPaid]);
-
-  const handleOpenLink = () =>
-    window.open("https://www.greenstonelobo.com/free-horoscope", "_blank");
-
-  const handlePay44 = async () => {
-    if (!user?.email) {
-      setPayError("Please complete your details first.");
-      return;
-    }
-    setPayProcessing(true);
-    setPayError("");
-
-    // Try PayFast first
-    try {
-      setPaymentPending({
-        type: "deeper",
-        timestamp: Date.now()
-      });
-
-      await initiateDeeperPayment(user);
-      return;
-    } catch (payFastErr) {
-      console.error("[PayFast Deeper] error:", payFastErr);
-      setPaymentPending(null);
+    // 1. Fetch HMS Price
+    if (isHmsDevice()) {
+      getProductInfo(["Astrological.Chart.Reading"], 0).then(res => {
+        if (res?.[0]?.price) setHmsPrice(res[0].price);
+      }).catch(() => {});
     }
 
-    try {
-      const purchase = await buyProduct("Astrological.Chart.Reading", 0);
+    // 2. Fetch Localized Currency
+    const fetchCurrency = async () => {
+      try {
+        const { apiUrl } = await import("../utils/apiBase.js");
+        const res = await fetch(apiUrl("/api/rate"));
+        if (res.ok) {
+          const data = await res.json();
+          setCurrencyData({
+            symbol: data.symbol || '$',
+            rate: data.rate || 1,
+            code: data.code || 'USD'
+          });
+        }
+      } catch (e) { console.warn(e); }
+    };
+    fetchCurrency();
+  }, []);
 
-      const verifyRes = await fetch("/api/huawei/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          purchaseData: purchase.purchaseData,
-          signature: purchase.signature,
-          email: user.email,
-          name: user.name
-        })
-      });
+  const getDisplayPrice = () => {
+    if (hmsPrice) return hmsPrice;
+    const converted = (44 * currencyData.rate).toFixed(currencyData.code === 'BHD' ? 3 : 2);
+    const display = converted.endsWith(".00") ? Math.round(converted) : converted;
+    return `${currencyData.symbol}${display}`;
+  };
 
-      if (!verifyRes.ok) {
-        const errData = await verifyRes.json();
-        throw new Error(errData.error || "Verification failed");
+  const displayPrice = getDisplayPrice();
+
+  // Handle returning from external browser
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const isPending = localStorage.getItem("tl_pending_deeper") === "true";
+        if (isPending && !uploadedImage) {
+          setShowGlowPrompt(true);
+        }
       }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [uploadedImage]);
 
-      const data = JSON.parse(purchase.purchaseData);
-      await consumePurchase(data.purchaseToken);
-
-      setDeeperPaid(true);
-      setPayDone(true);
-    } catch (err) {
-      console.error("[Deeper] payment error:", err);
-      setPayError(err.message || t("deeperPayError"));
-    } finally {
-      setPayProcessing(false);
+  const handleOpenLink = async () => {
+    const url = "https://www.greenstonelobo.com/free-horoscope";
+    localStorage.setItem("tl_pending_deeper", "true");
+    if (window.Capacitor?.isNativePlatform()) {
+      await Browser.open({ url });
+    } else {
+      window.open(url, "_blank");
     }
   };
 
-  const handleSimulateSuccess = () => {
-    setDeeperPaid(true);
-    setPayDone(true);
+  const handlePay44 = async () => {
+    if (!uploadedImage) { setPayError("Please upload your image before proceeding to payment."); return; }
+    if (!user?.email) { setPayError("Please complete your details first."); return; }
+    setPayProcessing(true);
+    setPayError("");
+
+    await processDeeperPayment(user, {
+      onSuccess: () => {
+        setDeeperPaid(true);
+        setPayProcessing(false);
+      },
+      onError: (msg) => {
+        setPayError(msg || t("deeperPayError"));
+        setPayProcessing(false);
+      },
+      onPending: () => {},
+    });
   };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => setUploadedImage(ev.target.result);
+    reader.onload = (ev) => {
+      setUploadedImage(ev.target.result);
+      setShowGlowPrompt(false); // Hide prompt once uploaded
+      localStorage.removeItem("tl_pending_deeper");
+    };
     reader.readAsDataURL(file);
   };
 
@@ -99,119 +116,68 @@ export default function DeeperScreen() {
     <ScreenWrapper>
       <div className="flex flex-col min-h-screen px-6 py-10">
 
-        <div className="animate-fade-in-up pt-10 mb-6 text-center">
-          <p className="font-cinzel text-[10px] tracking-[0.4em] text-[#D4AF37] uppercase mb-3"
-            style={{ textShadow: "0 0 8px rgba(212,175,55,0.6)" }}>
-            {t("deeperTag")}
-          </p>
-          <h2 className="font-cinzel text-2xl font-bold"
-            style={{ background: "linear-gradient(135deg,#f0d060,#D4AF37,#8a7020)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-            {t("deeperTitle")}
-          </h2>
-        </div>
-
-        <Divider />
-
-        <div className="flex flex-col gap-5 animate-fade-in-up delay-200">
-
-          <div className="glass-gold rounded-2xl p-5 text-center">
-            <p className="font-cormorant text-lg leading-relaxed text-white italic">
-              {t("deeperBody")}
+        {showGlowPrompt && !uploadedImage && (
+          <div className="fixed bottom-32 left-6 right-6 z-50 animate-glow-pulse bg-[#D4AF37] p-4 rounded-xl text-center shadow-[0_0_30px_rgba(212,175,55,0.8)] border border-white/20">
+            <p className="font-cinzel text-[#060810] text-[10px] font-bold tracking-[0.2em] uppercase">
+              Details Received: Upload Image to Proceed
             </p>
           </div>
+        )}
 
+        <div className="animate-fade-in-up pt-10 mb-6 text-center">
+          <p className="font-cinzel text-[10px] tracking-[0.4em] text-[#D4AF37] uppercase mb-3" style={{ textShadow: "0 0 8px rgba(212,175,55,0.6)" }}>{t("deeperTag")}</p>
+          <h2 className="font-cinzel text-2xl font-bold" style={{ background: "linear-gradient(135deg,#f0d060,#D4AF37,#8a7020)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{t("deeperTitle")}</h2>
+        </div>
+        <Divider />
+        <div className="flex flex-col gap-5 animate-fade-in-up delay-200">
+          <div className="glass-gold rounded-2xl p-5 text-center">
+            <p className="font-cormorant text-lg leading-relaxed text-white italic">{t("deeperBody")}</p>
+          </div>
           <CosmicButton onClick={handleOpenLink}>{t("deeperBtn")}</CosmicButton>
-
           <div className="glass-gold rounded-2xl p-4 text-center">
-            <p className="font-cormorant text-base text-white/60 italic leading-relaxed">
-              {t("deeperReturn")}{" "}
-              <span className="text-[#D4AF37] font-semibold">{t("deeperPrice")}</span>
-            </p>
+            <p className="font-cormorant text-base text-white/60 italic leading-relaxed">{t("deeperReturn")} <span className="text-[#D4AF37] font-semibold">{displayPrice}</span></p>
           </div>
 
           {!payDone && (
             <div className="flex flex-col gap-3">
-              <label className="w-full py-4 rounded-xl border border-dashed border-[#D4AF37]/30 text-[#D4AF37] font-cormorant text-base text-center cursor-pointer hover:border-[#D4AF37]/55 hover:bg-white/4 transition-all">
-                {uploadedImage ? t("deeperUploaded") : t("deeperUpload")}
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-              </label>
-              {uploadedImage && (
-                <img src={uploadedImage} alt="Uploaded" className="w-full rounded-xl border border-[#D4AF37]/20 max-h-48 object-cover" />
-              )}
-
-              {payError && (
-                <p className="font-cormorant text-sm text-center" style={{ color: "rgba(248,113,113,0.85)" }}>
-                  {payError}
-                </p>
-              )}
-
-              <GoldButton onClick={handlePay44} disabled={payProcessing}>
-                {payProcessing ? t("deeperPayProcessing") : t("deeperPayBtn")}
-              </GoldButton>
-
-              {/* SANDBOX TEST BYPASS */}
-              <button
-                onClick={handleSimulateSuccess}
-                className="w-full py-3 rounded-xl border border-dashed border-[#D4AF37]/40 text-[#D4AF37]/60 font-cinzel text-[10px] tracking-widest uppercase hover:bg-white/5 transition-all mt-1"
-              >
-                Skip to Upload (Sandbox Test)
-              </button>
-
-              <p className="font-cormorant text-xs text-center italic" style={{ color: "rgba(212,175,55,0.4)" }}>
-                Secure payment via PayFast  ZAR equivalent of $44
-              </p>
-            </div>
-          )}
-
-          {payDone && !confirmed && (
-            <div className="flex flex-col gap-3 animate-fade-in">
-              <div className="glass-gold rounded-2xl p-4 text-center border border-[#D4AF37]/25">
-                <p className="font-cinzel text-[#D4AF37] text-sm tracking-widest mb-1">
-                  {t("deeperPaidTitle")}
-                </p>
-                <p className="font-cormorant text-white/55 text-sm italic">
-                  {t("deeperPaidSub")}
-                </p>
-              </div>
-
               <label className="w-full py-4 rounded-xl border border-dashed border-[#D4AF37]/30 text-[#D4AF37] font-cormorant text-base text-center cursor-pointer hover:border-[#D4AF37]/55 transition-all">
                 {uploadedImage ? t("deeperUploaded") : t("deeperUpload")}
                 <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
               </label>
-              {uploadedImage && (
-                <img src={uploadedImage} alt="Uploaded" className="w-full rounded-xl border border-[#D4AF37]/20 max-h-48 object-cover" />
-              )}
+              {uploadedImage && <img src={uploadedImage} alt="Uploaded" className="w-full rounded-xl border border-[#D4AF37]/20 max-h-48 object-cover" />}
+              {payError && <p className="font-cormorant text-sm text-center" style={{ color: "rgba(248,113,113,0.85)" }}>{payError}</p>}
+              <GoldButton onClick={handlePay44} disabled={payProcessing || !uploadedImage}>{payProcessing ? t("deeperPayProcessing") : `Pay ${displayPrice} - Get Advanced Reading`}</GoldButton>
+            </div>
+          ) }
 
-              <GoldButton onClick={() => setConfirmed(true)} disabled={!uploadedImage}>
-                {t("deeperConfirmBtn")}
-              </GoldButton>
+          {payDone && !confirmed && (
+            <div className="flex flex-col gap-3 animate-fade-in">
+              <div className="glass-gold rounded-2xl p-4 text-center border border-[#D4AF37]/25">
+                <p className="font-cinzel text-[#D4AF37] text-sm tracking-widest mb-1">{t("deeperPaidTitle")}</p>
+                <p className="font-cormorant text-white/55 text-sm italic">{t("deeperPaidSub")}</p>
+              </div>
+              <label className="w-full py-4 rounded-xl border border-dashed border-[#D4AF37]/30 text-[#D4AF37] font-cormorant text-base text-center cursor-pointer hover:border-[#D4AF37]/55 transition-all">
+                {uploadedImage ? t("deeperUploaded") : t("deeperUpload")}
+                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+              </label>
+              {uploadedImage && <img src={uploadedImage} alt="Uploaded" className="w-full rounded-xl border border-[#D4AF37]/20 max-h-48 object-cover" />}
+              <GoldButton onClick={() => setConfirmed(true)} disabled={!uploadedImage}>{t("deeperConfirmBtn")}</GoldButton>
             </div>
           )}
 
           {payDone && confirmed && (
             <div className="glass-gold rounded-2xl p-6 text-center animate-fade-in">
-              <p className="text-3xl mb-3" style={{ color: "#D4AF37" }}></p>
-              <p className="font-cinzel text-[#D4AF37] text-base tracking-widest mb-2">
-                {t("deeperThankTitle")}
-              </p>
-              <p className="font-cormorant text-white/90 text-base italic leading-relaxed">
-                {t("deeperThankBody")}
-              </p>
+              <p className="font-cinzel text-[#D4AF37] text-base tracking-widest mb-2">{t("deeperThankTitle")}</p>
+              <p className="font-cormorant text-white/90 text-base italic leading-relaxed">{t("deeperThankBody")}</p>
             </div>
           )}
-
         </div>
 
         <div className="mt-auto pt-8 pb-8 flex flex-col gap-3 animate-fade-in-up delay-400">
           <Divider />
-          <button
-            onClick={() => goTo("welcome")}
-            className="w-full py-4 rounded-xl border border-white/10 text-white/70 font-cinzel text-xs tracking-widest hover:border-white/20 hover:text-white/60 transition-all"
-          >
-            {t("returnHome")}
-          </button>
+          <button onClick={() => goTo("welcome")} className="w-full py-4 rounded-xl border border-white/10 text-white/70 font-cinzel text-xs tracking-widest hover:border-white/20 transition-all">{t("returnHome")}</button>
+          <button onClick={resetSession} className="w-full py-2 text-white/30 font-cinzel text-[8px] tracking-[0.3em] uppercase hover:text-white/50 transition-all">Reset Session</button>
         </div>
-
       </div>
     </ScreenWrapper>
   );

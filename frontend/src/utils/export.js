@@ -1,8 +1,8 @@
-﻿// Tessera Lumen â€” Reading Export System
+// Tessera Lumen â€” Reading Export System
 // Generates text, HTML, and PDF exports WITHOUT card images (artwork stays in-app)
 // Uses Web Share API for native share sheets on iOS and Android
 
-import { isIOS } from "./download.js";
+
 
 
 //  HTML Email Template 

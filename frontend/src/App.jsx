@@ -1,152 +1,200 @@
 import { AppProvider, useApp } from "./context/AppContext.jsx";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 import { App as CapApp } from "@capacitor/app";
-import WelcomeScreen from "./screens/WelcomeScreen.jsx";
-import DetailsScreen from "./screens/DetailsScreen.jsx";
-import IntentionScreen from "./screens/IntentionScreen.jsx";
-import PackagesScreen from "./screens/PackagesScreen.jsx";
-import PaymentScreen from "./screens/PaymentScreen.jsx";
-import RevealScreen from "./screens/RevealScreen.jsx";
-import DeeperScreen from "./screens/DeeperScreen.jsx";
-import TermsScreen from "./screens/legal/TermsScreen.jsx";
-import PrivacyScreen from "./screens/legal/PrivacyScreen.jsx";
-import LicensingScreen from "./screens/legal/LicensingScreen.jsx";
 import AppFooter from "./components/AppFooter.jsx";
+import PrivacyConsent from "./components/PrivacyConsent.jsx";
+import { routes } from "./routes/index.jsx";
 
-const LEGAL_SCREENS = ["terms", "privacy", "licensing"];
+const LEGAL_SCREENS = ["terms", "privacy", "licensing", "payment-success", "payment-cancelled", "success", "failed"];
+
+function LoadingFallback() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <div className="w-10 h-10 border-3 border-[#D4AF37]/20 border-t-[#D4AF37] rounded-full animate-spin mb-3"></div>
+      <p className="font-cinzel text-[#D4AF37]/60 text-xs tracking-widest uppercase">Loading...</p>
+    </div>
+  );
+}
 
 function Router() {
   const { screen, goTo, setIsPaid, setDeeperPaid, user, refreshPaymentStatus, paymentLoading, paymentPending, setPaymentPending } = useApp();
-  const audioRef = useRef(null);
-  const [audioReady, setAudioReady] = useState(false);
+
+  // Diagnostic mode: set to true to see on-device HMS error alerts
+  useEffect(() => { window.__HMS_DEBUG = true; }, []);
+
+  const [privacyAccepted, setPrivacyAccepted] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("paid") || params.get("deeper_paid") || params.get("cancelled") || params.get("deeper_cancelled")) {
+        localStorage.setItem("tl_privacy_accepted", "true");
+        return true;
+      }
+      return localStorage.getItem("tl_privacy_accepted") === "true";
+    } catch (e) { return true; } // Default to accepted if LS fails
+  });
+
+  // Refs to avoid stale closures in Capacitor listeners
+  const userRef = useRef(user);
+  const paymentPendingRef = useRef(paymentPending);
+  const screenRef = useRef(screen);
+  useEffect(() => { userRef.current = user; }, [user]);
+  useEffect(() => { paymentPendingRef.current = paymentPending; }, [paymentPending]);
+  useEffect(() => { screenRef.current = screen; }, [screen]);
+
+  const handlePrivacyAccept = () => {
+    localStorage.setItem("tl_privacy_accepted", "true");
+    setPrivacyAccepted(true);
+  };
 
   const processDeepLink = useCallback(async (urlStr) => {
     try {
-      console.log("--- [EVIDENCE] 4 & 5. STATE AFTER RETURN ---");
-      console.log("Deep Link URL:", urlStr);
-      console.log("Current Context User:", JSON.stringify(user));
-
       const normalized = urlStr.replace("tessera://app", "https://tessera.app");
       const url = new URL(normalized);
-      const isPaidParam = url.searchParams.get('paid') === '1';
-      const cancelledParam = url.searchParams.get('cancelled') === '1';
-
+      const isPaidParam = url.searchParams.get("paid") === "1";
+      const cancelledParam = url.searchParams.get("cancelled") === "1";
       if (isPaidParam || cancelledParam) {
-        let emailToVerify = user?.email;
-        if (!emailToVerify) {
-           const savedUser = JSON.parse(localStorage.getItem("tl_user") || "{}");
-           emailToVerify = savedUser.email;
-        }
-
+        let emailToVerify = userRef.current?.email || JSON.parse(localStorage.getItem("tl_user") || "{}").email;
         if (isPaidParam && emailToVerify) {
-          console.log("Verifying payment status with server for:", emailToVerify);
           const status = await refreshPaymentStatus(emailToVerify);
-
-          if (status?.isPaid || status?.deeperPaid) {
-            setPaymentPending(null); // Success! Clear pending state
-          }
+          if (status?.isPaid || status?.deeperPaid) setPaymentPending(null);
         }
-
-        if (cancelledParam) {
-           setPaymentPending(null); // Cancelled, clear state
-        }
-
-        // Navigation based on URL or pending state
-        if (url.pathname.includes('deeper') || paymentPending?.type === 'deeper') {
-          console.log("Navigating to DEEPER");
-          goTo('deeper');
-        } else {
-          console.log("Navigating to REVEAL");
-          goTo('reveal');
-        }
-      } else {
-        console.log("Reason: Deep link detected but no paid/cancelled param");
-      }
-      console.log("------------------------------------------");
-    } catch (e) {
-      console.error("[EVIDENCE] Deep link error:", e);
-    }
-  }, [goTo, user, refreshPaymentStatus, paymentPending, setPaymentPending]);
-
-  // Restore session from paymentPending on cold start
-  useEffect(() => {
-    if (screen === "welcome" && paymentPending) {
-       console.log("Detected pending payment on cold start. Restoring screen.");
-       if (paymentPending.type === "deeper") {
+        if (cancelledParam) setPaymentPending(null);
+        if (url.pathname.includes("deeper") || paymentPendingRef.current?.type === "deeper") {
           goTo("deeper");
-       } else {
+        } else {
           goTo("reveal");
-       }
-    }
-  }, []);
-
-  useEffect(() => {
-    // 1. Audio Logic
-    if (!window.Capacitor) {
-      const unlockAudio = () => {
-        if (audioRef.current && !audioReady) {
-          audioRef.current.volume = 0.5;
-          audioRef.current.play()
-            .then(() => setAudioReady(true))
-            .catch(e => console.warn("Web audio blocked:", e));
         }
-      };
-      window.addEventListener('click', unlockAudio);
-      window.addEventListener('touchstart', unlockAudio);
-      return () => {
-        window.removeEventListener('click', unlockAudio);
-        window.removeEventListener('touchstart', unlockAudio);
-      };
+      }
+    } catch (e) {
+      console.error("[DeepLink] Error:", e);
     }
+  }, [goTo, refreshPaymentStatus, setPaymentPending]);
 
-    // 2. Web-to-App Bridge
-    if (!window.Capacitor) {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('paid') === '1' || params.get('cancelled') === '1') {
-        console.log("[EVIDENCE] Web redirect detected. Parameters:", window.location.search);
-        window.location.href = `tessera://app${window.location.pathname}${window.location.search}`;
+  // 1. URL path routing (direct page access)
+  useEffect(() => {
+    const path = window.location.pathname;
+    if (path === "/privacy") goTo("privacy");
+    else if (path === "/payment-success") goTo("payment-success");
+    else if (path === "/payment-cancelled") goTo("payment-cancelled");
+  }, [goTo]);
+
+  // 2. Payment return - clean URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hasPaidParam = params.get("paid") === "1" || params.get("deeper_paid") === "1";
+    const hasCancelParam = params.get("cancelled") === "1" || params.get("deeper_cancelled") === "1";
+
+    if (hasPaidParam || hasCancelParam) {
+      console.log("[Payment:Return] Cleaning URL:", window.location.search);
+
+      // We removed the aggressive "tessera://app" bounce here because
+      // the backend now handles the redirect through the Cloudflare Gateway
+      // using superior Intent URLs when 'native' is detected.
+
+      window.history.replaceState({}, "", window.location.pathname);
+
+      // Only set states if they aren't already set to prevent re-render loops
+      if (params.get("paid") === "1") {
+        setIsPaid(true);
+        localStorage.setItem("tl_is_paid", "true");
+      }
+      if (params.get("deeper_paid") === "1") {
+        setDeeperPaid(true);
+        localStorage.setItem("tl_deeper_paid", "true");
       }
     }
+  }, [setIsPaid, setDeeperPaid]);
 
-    // 3. Capacitor Native Listeners
-    if (window.Capacitor) {
-      CapApp.getLaunchUrl().then(ret => {
-        if (ret?.url) {
-          console.log("[EVIDENCE] App launched via URL:", ret.url);
-          processDeepLink(ret.url);
-        }
-      });
+  // 3. Capacitor native listeners (deep links + back button)
+  useEffect(() => {
+    if (!window.Capacitor?.isNativePlatform?.()) return;
 
-      const sub = CapApp.addListener('appUrlOpen', (data) => {
-        console.log("[EVIDENCE] App resumed via URL:", data.url);
-        processDeepLink(data.url);
-      });
-      return () => sub.remove();
-    }
-  }, [processDeepLink, audioReady]);
+    const listeners = [];
 
-  const screens = {
-    welcome:   <WelcomeScreen />,
-    details:   <DetailsScreen />,
-    intention: <IntentionScreen />,
-    packages:  <PackagesScreen />,
-    payment:   <PaymentScreen />,
-    reveal:    <RevealScreen />,
-    deeper:    <DeeperScreen />,
-    terms:     <TermsScreen onBack={() => goTo("welcome")} />,
-    privacy:   <PrivacyScreen onBack={() => goTo("welcome")} />,
-    licensing: <LicensingScreen onBack={() => goTo("welcome")} />,
+    CapApp.addListener("backButton", () => {
+      if (screenRef.current === "welcome") {
+        CapApp.exitApp();
+      } else {
+        goTo("welcome");
+      }
+    }).then(l => listeners.push(l)).catch(() => {});
+
+    CapApp.getLaunchUrl().then(ret => {
+      if (ret?.url) processDeepLink(ret.url);
+    }).catch(() => {});
+
+    CapApp.addListener("appUrlOpen", (data) => {
+      processDeepLink(data.url);
+    }).then(l => listeners.push(l)).catch(() => {});
+
+    return () => {
+      listeners.forEach(l => { if (l?.remove) l.remove(); });
+    };
+  }, [goTo, processDeepLink]);
+
+  const renderScreen = () => {
+    const Component = routes[screen] || routes["welcome"];
+    const { previousScreen } = useApp();
+
+    // Special handling for screens that need props
+    if (screen === "terms") return <Component onBack={() => goTo(previousScreen)} />;
+    if (screen === "privacy") return <Component onBack={() => goTo(previousScreen)} />;
+    if (screen === "licensing") return <Component onBack={() => goTo(previousScreen)} />;
+
+    return <Component />;
   };
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      {!window.Capacitor && (
-        <audio ref={audioRef} src="/ambient.mp3" loop preload="auto" style={{ display: 'none' }} />
-      )}
+      {/* Cinematic Layered Background */}
       <div className="app-bg" />
-      <div className="nebula-overlay" />
-      <div className="starfield" />
-      <div className="particles" />
+      <div className="nebula-layer-1" />
+      <div className="nebula-layer-2" />
+      <div className="stars-layer" />
+      <div className="cosmic-depth" />
+      <div className="vignette-overlay" />
+
+      {/* High-fidelity Cinematic Diamond Sparkle Stars (8-Point) */}
+      <div className="starfield">
+        {/* Top left cluster */}
+        <div className="diamond-star top-[12%] left-[15%]" style={{ animationDelay: "0s" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+        <div className="diamond-star top-[18%] left-[10%]" style={{ animationDelay: "1.2s", transform: "scale(0.6)" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+
+        {/* Central Prominent Diamond */}
+        <div className="diamond-star top-[45%] left-[50%]" style={{ animationDelay: "2.5s", transform: "scale(1.2)" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+
+        {/* Right side cluster */}
+        <div className="diamond-star top-[25%] left-[82%]" style={{ animationDelay: "0.8s" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+        <div className="diamond-star top-[10%] left-[75%]" style={{ animationDelay: "3.1s", transform: "scale(0.8)" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+
+        {/* Bottom clusters */}
+        <div className="diamond-star top-[65%] left-[25%]" style={{ animationDelay: "4.5s" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+        <div className="diamond-star top-[82%] left-[70%]" style={{ animationDelay: "1.9s" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+        <div className="diamond-star top-[90%] left-[15%]" style={{ animationDelay: "5.3s", transform: "scale(0.7)" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+        <div className="diamond-star top-[55%] left-[88%]" style={{ animationDelay: "3.7s" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+        <div className="diamond-star top-[75%] left-[45%]" style={{ animationDelay: "6.1s", transform: "scale(0.5)" }}>
+           <div className="diamond-star-secondary" />
+        </div>
+      </div>
+
       <div className="relative z-10 w-full">
         {paymentLoading ? (
           <div className="flex flex-col items-center justify-center min-h-screen">
@@ -154,12 +202,17 @@ function Router() {
             <p className="font-cinzel text-[#D4AF37] text-xs tracking-widest uppercase animate-pulse">Verifying Payment...</p>
           </div>
         ) : (
-          screens[screen] || <WelcomeScreen />
+          <Suspense fallback={<LoadingFallback />}>
+            {renderScreen()}
+          </Suspense>
         )}
-        {!LEGAL_SCREENS.includes(screen) && !paymentLoading && <AppFooter />}
       </div>
-      {!window.Capacitor && !audioReady && (
-        <div className="fixed bottom-4 left-4 z-50 text-[10px] text-[#D4AF37]/40 uppercase tracking-widest font-cinzel animate-pulse pointer-events-none">Tap anywhere for sound</div>
+      {!privacyAccepted && screen !== "privacy" && (
+        <PrivacyConsent
+          onAccept={handlePrivacyAccept}
+          onReject={() => { window.history.back(); }}
+          onViewPolicy={() => goTo("privacy")}
+        />
       )}
     </div>
   );

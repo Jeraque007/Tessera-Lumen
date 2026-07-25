@@ -1,12 +1,12 @@
-﻿// frontend/src/utils/payfast.js
+import { apiUrl } from "./apiBase.js";
+// frontend/src/utils/payfast.js
 // PayFast payment utility  frontend
 // Calls /api/payfast/initiate to get signed payment data
 // Then launches PayFast in an external browser via a relay page
 
-import { Browser } from "@capacitor/browser";
 
-// ZAR price mapping for each package
-export const PACKAGE_PRICES_ZAR = {
+// USD price mapping for each package
+export const PACKAGE_PRICES_USD = {
   1: "3.99",
   2: "9.99",
   3: "19.99",
@@ -17,31 +17,52 @@ export const PACKAGE_PRICES_ZAR = {
 
 // Standard package payment (subscriptions + one-time readings)
 export async function initiatePayFastPayment(pkg, user) {
-  const res = await fetch("/api/payfast/initiate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      package: { ...pkg, priceUSD: PACKAGE_PRICES_ZAR[pkg.id] || "9.99" },
-      user,
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || "Payment initiation failed");
+  const isNative = window.Capacitor?.isNativePlatform?.();
+  const endpoint = apiUrl("/api/payfast/initiate");
+
+  console.log("[PayFast] Initiating from:", endpoint);
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        package: { ...pkg, price: PACKAGE_PRICES_USD[pkg.id] || "9.99" },
+        user,
+        native: isNative
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "Unknown error");
+      console.error("[PayFast] Initiation failed:", res.status, errText);
+      throw new Error(`Payment initiation failed (${res.status})`);
+    }
+
+    const { paymentUrl, fields } = await res.json();
+    console.log("[PayFast] Received data, building relay URL...");
+
+    // Build relay URL
+    const query = new URLSearchParams({ url: paymentUrl, ...fields }).toString();
+    const relayUrl = `${apiUrl("/api/payfast/relay")}?${query}`;
+
+    if (isNative) {
+      const { Browser } = await import("@capacitor/browser");
+      await Browser.open({ url: relayUrl });
+    } else {
+      window.location.href = relayUrl;
+    }
+  } catch (e) {
+    console.error("[PayFast] Error during initiation:", e.message);
+    throw e;
   }
-  const { paymentUrl, fields } = await res.json();
-
-  // Use relay URL to bridge GET to POST for external browser launch
-  // This prevents app crashes caused by internal WebView navigation
-  const query = new URLSearchParams({ url: paymentUrl, ...fields }).toString();
-  const relayUrl = `${window.location.origin}/api/payfast/relay?${query}`;
-
-  await Browser.open({ url: relayUrl });
 }
 
 // Deeper reading one-time $44 payment
 export async function initiateDeeperPayment(user) {
-  const res = await fetch("/api/payfast/initiate", {
+  const isNative = window.Capacitor?.isNativePlatform?.();
+
+  const res = await fetch(apiUrl("/api/payfast/initiate"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -50,9 +71,10 @@ export async function initiateDeeperPayment(user) {
         type: "deeper",
         name: "Advanced Astrology Reading",
         desc: "Personalised advanced astrology reading",
-        priceUSD: "44.00",
+        price: "44.00",
       },
       user,
+      native: isNative
     }),
   });
   if (!res.ok) {
@@ -62,22 +84,14 @@ export async function initiateDeeperPayment(user) {
   const { paymentUrl, fields } = await res.json();
 
   const query = new URLSearchParams({ url: paymentUrl, ...fields }).toString();
-  const relayUrl = `${window.location.origin}/api/payfast/relay?${query}`;
+  const relayUrl = `${apiUrl("/api/payfast/relay")}?${query}`;
 
-  await Browser.open({ url: relayUrl });
-}
+  console.log("[Payment:Deeper] Initiating redirect");
 
-// Fetch live USD/ZAR rate from our backend
-export async function fetchZARRate() {
-  try {
-    const res = await fetch("/api/fx/rate");
-    if (!res.ok) return { rate: 18.80, fallback: true };
-    return await res.json();
-  } catch (_) {
-    return { rate: 18.80, fallback: true };
+  if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+    const { Browser } = await import("@capacitor/browser");
+    await Browser.open({ url: relayUrl });
+  } else {
+    window.location.href = relayUrl;
   }
-}
-
-export function convertToZAR(usdAmount, rate) {
-  return (parseFloat(usdAmount) * rate).toFixed(2);
 }

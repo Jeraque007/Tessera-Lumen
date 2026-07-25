@@ -1,4 +1,4 @@
-﻿export default {
+export default {
   // Global
   appName: "Tessera Lumen",
   sacredSpace: "Sacred Space",
@@ -9,6 +9,7 @@
   welcomeTop: "Welcome to the Field of Sophia",
   welcomeBody: "Step into a space of illumination, insight, and inner awakening. This experience offers guided tarot readings designed to reveal clarity, truth, and direction.",
   welcomeBtn: "Begin",
+  freeTrialBtn: "Try Free Sample Reading",
 
   // Details
   detailsTag: "Your Journey",
@@ -30,6 +31,7 @@
   intentionTitle: "Focus Your Energy",
   intentionBody: "Focus your intention. When ready, allow the cards to reveal your message.",
   intentionBtn: "Ready",
+  intentionCards: { family: "Family", love: "Love", path: "Path", career: "Career", relocation: "Relocation", lovequery: "Does He/She\nLove Me?", marriage: "Marriage", other: "Other" },
   intentions: [
     "Family", "Love", "Work", "Career", "Life in general",
     "A move", "Should I stay", "Does he or she love me", "Will I get married"
@@ -71,11 +73,12 @@
   paymentAwait: "YOUR READING AWAITS",
   paymentAwaitsBody: "Tap below to enter your sacred reading space.",
   paymentError: "Payment could not be initiated. Please try again.",
+  changePackage: "Change Selection",
 
   // Reveal
   revealTag: "The Cards Speak",
   revealTitle: "Your card awaits. Your essence has selected a very special card.",
-  revealBtn: "Reveal My Cards",
+  revealBtn: "Tap on the card above",
   revealRevealing: "Revealing...",
   revealReceive: "Receive your reading",
   revealEmail: "Email",
@@ -115,12 +118,18 @@
   deeperPayCancelled: "Payment was cancelled. You can try again below.",
   deeperPayError: "Payment could not be initiated. Please try again.",
   languageLabel: "Language",
+  privacyNoticeTitle: "Privacy Notice",
+  privacyNoticeBody: "By continuing, you acknowledge that you have read and agree to our",
+  privacyNoticePolicyLink: "Privacy Policy",
+  privacyNoticeRespect: "We respect your data and your journey.",
+  privacyNoticeAgree: "Agree",
+  privacyNoticeReject: "Reject",
   languages: {
     en: "English",
-    es: "EspaÃ±ol",
-    fr: "FranÃ§ais",
+    es: "Español",
+    fr: "Français",
     de: "Deutsch",
-    pt: "PortuguÃªs",
+    pt: "Português",
   },
 };
 

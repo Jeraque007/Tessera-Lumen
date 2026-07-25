@@ -1,168 +1,200 @@
-﻿import { useState, useEffect } from "react";
+console.log("REVEAL SCREEN LOADED");
+import { useState, useEffect, useMemo } from "react";
 import ScreenWrapper from "../components/ScreenWrapper.jsx";
 import TpButton from "../components/TpButton.jsx";
 import CosmicButton from "../components/CosmicButton.jsx";
 import Divider from "../components/Divider.jsx";
-import TarotCard from "../components/TarotCard.jsx";
 import { useApp } from "../context/AppContext.jsx";
-
-import { drawLocalizedCards } from "../data/cards.js";
-import { checkQuota, deductRead } from "../utils/quota.js";
-import QuotaGate from "../components/QuotaGate.jsx";
+import { CARDS } from "../data/cards.js";
+import { drawCards } from "../data/cardResolver.js";
 import { useTranslation } from "react-i18next";
-import ExportPanel from "../components/ExportPanel.jsx";
+import { createReadingObject } from "../utils/readingStore.js";
+import { renderReadingCard, dispatchExport } from "../utils/readingExport.js";
+import AmbientAudio from "../utils/ambient-audio-manager.js";
 
 export default function RevealScreen() {
-  const { goTo, user, intention, selectedPackage, drawnCards, setDrawnCards, isPaid, paymentLoading } = useApp();
+  const {
+    goTo, user, intention, selectedPackage,
+    isPaid,
+    setDrawnCards,
+    immutableReadings, setImmutableReadings
+  } = useApp();
+
   const { t, i18n } = useTranslation();
-  const [revealed, setRevealed] = useState(drawnCards.length > 0);
+  const [settled, setSettled] = useState(false);
+  const hasRenderedReadings = immutableReadings.length > 0 && immutableReadings[0]?.export?.dataUrl;
 
-  // Guard: if not paid and not currently checking, redirect home
+  // GUARD: Check if user is actually paid with a settle buffer
   useEffect(() => {
-    if (!paymentLoading && !isPaid) {
-      console.log("[Guard] Not paid, redirecting to welcome");
-      goTo("welcome");
+    const timer = setTimeout(() => {
+      const persistedPaid = localStorage.getItem("tl_is_paid") === "true";
+      const isFree = selectedPackage?.type === "free";
+
+      if (!isPaid && !persistedPaid && !isFree) {
+        console.warn("[Reveal] Unpaid access attempt. Redirecting home.");
+        goTo("welcome");
+      } else {
+        setSettled(true);
+      }
+    }, 500); // 500ms buffer to allow context to settle
+    return () => clearTimeout(timer);
+  }, [isPaid, selectedPackage, goTo]);
+
+  const [revealed, setRevealed] = useState(!!hasRenderedReadings);
+  const [processing, setProcessing] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(hasRenderedReadings ? immutableReadings.length : 0);
+
+  const cardCount = useMemo(() => selectedPackage?.cards || 1, [selectedPackage]);
+
+  // Handle payment return cleanup
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("paid") === "1") {
+      setDrawnCards([]);
+      setImmutableReadings([]);
+      setRevealed(false);
+      setVisibleCount(0);
     }
-  }, [isPaid, paymentLoading, goTo]);
-  const [flipping, setFlipping] = useState(false);
-  const [email, setEmail] = useState(user?.email || "");
-  const [phone, setPhone] = useState("");
+  }, [setDrawnCards, setImmutableReadings]);
 
-  const [visibleCount, setVisibleCount] = useState(drawnCards.length > 0 ? drawnCards.length : 0);
+  // Reveal: draw cards and render JPGs
+  const handleReveal = async () => {
+    if (processing || revealed) return;
+    setProcessing(true);
 
-  // Quota gate state  null = not blocked
-  const [quotaBlock, setQuotaBlock] = useState(null);
-  // { code, tomorrow, renewalDate, readsPerDay }
+    // Ensure audio is ready even if they skipped welcome (e.g. deep link)
+    await AmbientAudio.init();
+    AmbientAudio.startAmbient();
+    AmbientAudio.onCardTouch(); // First shimmer on reveal
 
-  const cardCount = selectedPackage?.cards || 1;
-  const positions = t("revealPositions");
+    const cards = drawCards(CARDS, cardCount, i18n.language);
+    const baseReadings = cards.map((c, i) => createReadingObject(c, i, selectedPackage, user, intention, i18n.language));
 
+    // Render all JPGs
+    const finalizedReadings = [];
+    for (let r of baseReadings) {
+      const finalized = await renderReadingCard(r);
+      finalizedReadings.push(finalized);
+    }
+
+    setImmutableReadings(finalizedReadings);
+    setDrawnCards(cards);
+    setRevealed(true);
+    setProcessing(false);
+    setVisibleCount(1);
+  };
+
+  // Stagger card reveal
   useEffect(() => {
-    if (revealed && visibleCount < drawnCards.length) {
-      const timer = setTimeout(() => setVisibleCount(v => v + 1), 500);
+    if (revealed && visibleCount < immutableReadings.length) {
+      const timer = setTimeout(() => setVisibleCount(v => v + 1), 1000);
       return () => clearTimeout(timer);
     }
-  }, [revealed, visibleCount, drawnCards.length]);
-
-  const handleReveal = async () => {
-    if (flipping) return;
-    setFlipping(true);
-
-    // Check quota for subscription users
-    if (selectedPackage?.type === "sub" && user?.email) {
-      const quota = await checkQuota(user.email);
-      if (!quota.allowed) {
-        setFlipping(false);
-        setQuotaBlock({
-          code:        quota.code,
-          tomorrow:    quota.tomorrow || null,
-          renewalDate: quota.renewalDate || null,
-          readsPerDay: quota.readsPerDay || null,
-        });
-        return;
-      }
-    }
-
-    setTimeout(async () => {
-      setDrawnCards(drawLocalizedCards(cardCount, i18n.language));
-      setRevealed(true);
-      setFlipping(false);
-      setVisibleCount(1);
-      // Deduct 1 read for subscription users
-      if (selectedPackage?.type === "sub" && user?.email) {
-        await deductRead(user.email);
-      }
-    }, 900);
-  };
+  }, [revealed, visibleCount, immutableReadings.length]);
 
   return (
     <ScreenWrapper>
-      {quotaBlock ? (
-        <QuotaGate
-          code={quotaBlock.code}
-          tomorrow={quotaBlock.tomorrow}
-          renewalDate={quotaBlock.renewalDate}
-          readsPerDay={quotaBlock.readsPerDay}
-          onUpgrade={() => goTo("packages")}
-          onGoHome={() => goTo("welcome")}
-        />
-      ) : (
-        <div className="flex flex-col min-h-screen px-4 pb-10 sm:px-6">
-          <div className="animate-fade-in-up mb-6 text-center" style={{ paddingTop: "64px" }}>
-            <p className="font-cinzel text-[10px] tracking-[0.4em] uppercase mb-3" style={{ color: "#D4AF37" }}>
-              {t("revealTag")}
-            </p>
-            <p className="font-cormorant italic" style={{ fontSize: "clamp(0.9rem,4vw,1rem)", color: "rgba(240,232,216,0.45)", lineHeight: 1.6, maxWidth: "260px", margin: "0 auto", wordWrap: "break-word", overflowWrap: "break-word", display: "block" }}>
-              {t("revealTitle")}
-            </p>
-          </div>
-          <Divider />
-          <div className="flex flex-col items-center gap-6 w-full py-2">
-            {!revealed ? (
-              <div className="flex flex-col items-center gap-8 w-full animate-fade-in-up delay-200">
-                <div
-                  onClick={handleReveal}
-                  className="relative w-40 h-64 rounded-2xl border-2 border-[#D4AF37]/35 bg-gradient-to-br from-[#1a1535] to-[#060810] flex items-center justify-center cursor-pointer hover:border-[#D4AF37] transition-all duration-300 animate-float"
-                  style={{ boxShadow: "0 0 30px rgba(212,175,55,0.15)" }}
-                >
-                  <span className="text-5xl opacity-25" style={{ color: "#D4AF37" }}>+</span>
-                  <span className="card-watermark">Tessera Lumen</span>
-                </div>
-                <TpButton onClick={handleReveal} disabled={flipping}>
-                  {flipping ? t("revealRevealing") : t("revealBtn")}
-                </TpButton>
+      <div className="flex flex-col min-h-screen px-4 pb-10 sm:px-6">
+
+        <div className="animate-fade-in-up mb-6 text-center" style={{ paddingTop: "64px" }}>
+          <p className="font-cinzel text-[10px] tracking-[0.4em] uppercase mb-3" style={{ color: "#D4AF37" }}>
+            {t("revealTag")}
+          </p>
+        </div>
+
+        <Divider />
+
+        <div className="flex flex-col items-center gap-8 w-full py-4">
+
+          {!revealed ? (
+            <div className="flex flex-col items-center gap-12 w-full animate-fade-in-up delay-200">
+              <div
+                onClick={handleReveal}
+                className="relative w-48 h-72 rounded-2xl border-2 border-[#D4AF37]/35 bg-gradient-to-br from-[#1a1535] to-[#060810] flex items-center justify-center cursor-pointer hover:border-[#D4AF37] transition-all duration-500 animate-float shadow-[0_0_50px_rgba(212,175,55,0.15)]"
+              >
+                <div className="absolute inset-4 border border-[#D4AF37]/10 rounded-xl" />
+                <span className="text-6xl text-[#D4AF37]/10 font-cinzel">?</span>
               </div>
-            ) : (
-              <div className="flex flex-col gap-6 w-full animate-fade-in">
-                {drawnCards.slice(0, visibleCount).map((card, i) => (
-                  <TarotCard
-                    key={card.number}
-                    card={card}
-                    position={cardCount > 1 ? positions[i] : null}
-                    index={i}
-                  />
-                ))}
-                {visibleCount < drawnCards.length && (
-                  <div className="text-center py-4 animate-fade-in">
-                    <p className="font-cinzel text-xs tracking-widest animate-glow-pulse" style={{ color: "rgba(212,175,55,0.5)" }}>+ + +</p>
-                  </div>
-                )}
-                {visibleCount >= drawnCards.length && (
-                  <div className="glass-gold rounded-2xl p-5 w-full animate-fade-in">
-                    <div className="flex flex-col gap-4 mb-5">
-                      <div>
-                        <label className="block font-cinzel text-[9px] tracking-[0.18em] uppercase mb-2" style={{ color: "rgba(240,232,216,0.6)" }}>
-                          {t("revealEmail")}
-                        </label>
-                        <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={t("revealEmailPh")} className="tc-input" />
-                      </div>
-                      <div>
-                        <label className="block font-cinzel text-[9px] tracking-[0.18em] uppercase mb-2" style={{ color: "rgba(240,232,216,0.6)" }}>
-                          {t("revealPhone")}
-                        </label>
-                        <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder={t("revealPhonePh")} className="tc-input" />
-                      </div>
-                    </div>
-                    <ExportPanel
-                      user={user}
-                      intention={intention}
-                      cards={drawnCards}
-                      positions={cardCount > 1 ? positions : []}
-                      email={email}
-                      phone={phone}
+              <TpButton onClick={handleReveal} disabled={processing}>
+                {processing ? t("revealRevealing") : t("revealBtn")}
+              </TpButton>
+            </div>
+
+          ) : (
+            <div className="flex flex-col gap-10 w-full animate-fade-in" style={{ maxWidth: "560px" }}>
+
+              {immutableReadings.slice(0, visibleCount).map((reading, i) => (
+                <div key={reading.id} className="flex flex-col gap-6 animate-fade-in-up"
+                  style={{ animationDelay: `${i * 0.3}s` }}>
+
+                  {/* THE CARD: rendered JPG */}
+                  {reading.export?.dataUrl ? (
+                    <img
+                      src={reading.export.dataUrl}
+                      alt={reading.card.title}
+                      onClick={() => AmbientAudio.onCardTouch()}
+                      className="w-full h-auto rounded-2xl border border-[#D4AF37]/30 shadow-2xl cursor-pointer active:scale-[0.98] transition-transform"
                     />
+                  ) : (
+                    <div className="w-full aspect-[9/16] rounded-2xl border border-[#D4AF37]/20 bg-[#0d0a1e] flex items-center justify-center">
+                      <p className="font-cinzel text-[#D4AF37]/40 text-xs tracking-widest uppercase animate-pulse">Rendering...</p>
+                    </div>
+                  )}
+
+                  {/* SAVE BUTTON */}
+                  <div className="flex justify-center">
+                    <button
+                      onClick={() => dispatchExport(reading)}
+                      disabled={!reading.export?.blob}
+                      className="w-full max-w-[320px] py-4 rounded-xl border-2 border-[#D4AF37]/60 bg-[#D4AF37]/8 text-[#f0d060] font-cinzel text-xs tracking-[0.2em] font-bold uppercase hover:bg-[#D4AF37]/15 active:scale-95 transition-all"
+                    >
+                      Save Reading to Device
+                    </button>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-          {revealed && visibleCount >= drawnCards.length && (
-            <div className="pt-4 pb-8 animate-fade-in-up">
-              <CosmicButton onClick={() => goTo("deeper")}>{t("revealDeeperBtn")}</CosmicButton>
+                </div>
+              ))}
+
+              {/* Loading next card */}
+              {visibleCount < immutableReadings.length && (
+                <div className="text-center py-10 animate-fade-in">
+                  <p className="font-cinzel text-xs tracking-[0.4em] text-[#D4AF37]/60 uppercase animate-pulse">
+                    Revealing next card...
+                  </p>
+                </div>
+              )}
+
+              {/* All cards revealed */}
+              {visibleCount >= immutableReadings.length && (
+                <div className="pt-8 pb-16 animate-fade-in-up flex flex-col items-center gap-8">
+                  {selectedPackage?.type === "free" ? (
+                    <>
+                      <CosmicButton onClick={() => goTo("details")}>
+                        {t("startJourney") || "Start Your Full Reading"}
+                      </CosmicButton>
+                      <p className="font-cormorant text-sm text-white/50 italic text-center px-4">
+                        {t("freeTrialCta") || "Ready for deeper insight? Begin your personalised journey."}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <CosmicButton onClick={() => goTo("deeper")}>
+                        {t("revealDeeperBtn")}
+                      </CosmicButton>
+                      <button
+                        onClick={() => goTo("packages")}
+                        className="w-full max-w-[320px] py-4 rounded-xl border border-white/10 text-white/70 font-cinzel text-xs tracking-widest hover:border-white/20 transition-all"
+                      >
+                        {t("newReading") || "Begin Another Reading"}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
             </div>
           )}
         </div>
-      )}
+      </div>
     </ScreenWrapper>
   );
 }

@@ -1,18 +1,29 @@
-﻿const CONTACT_EMAIL = "holistic@963.co.za";
+﻿import { useApp } from "../../context/AppContext.jsx";
+
+const CONTACT_EMAIL = "holistic@963.co.za";
 
 export default function LegalPage({ title, subtitle, children, onBack }) {
+  const { goTo } = useApp();
+
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(to bottom, #0a0c1a, #060810)", color: "#f0e8d8", fontFamily: "Cormorant Garamond, Georgia, serif" }}>
       {/* Header */}
-      <div style={{ borderBottom: "1px solid rgba(212,175,55,0.15)", padding: "20px 24px", display: "flex", alignItems: "center", gap: "16px", position: "sticky", top: 0, background: "rgba(6,8,16,0.95)", backdropFilter: "blur(12px)", zIndex: 50 }}>
+      <div style={{ borderBottom: "1px solid rgba(212,175,55,0.15)", padding: "16px 24px", display: "flex", alignItems: "center", gap: "16px", position: "sticky", top: 0, background: "rgba(6,8,16,0.95)", backdropFilter: "blur(12px)", zIndex: 60 }}>
+        <button
+          onClick={() => goTo("welcome")}
+          style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center" }}
+        >
+          <img src="/assets/logo.png" alt="Home" style={{ width: "65px", height: "auto" }} />
+        </button>
+
         <button onClick={onBack} style={{ background: "none", border: "none", color: "rgba(212,175,55,0.6)", cursor: "pointer", fontFamily: "Cinzel,serif", fontSize: "0.65rem", letterSpacing: "0.2em", padding: "4px 0", touchAction: "manipulation" }}>
            BACK
         </button>
-        <div style={{ flex: 1, textAlign: "center" }}>
+
+        <div style={{ flex: 1, textAlign: "center", marginRight: "61px" }}>
           <p style={{ fontFamily: "Cinzel,serif", fontSize: "0.6rem", letterSpacing: "0.35em", color: "rgba(212,175,55,0.5)", textTransform: "uppercase", margin: 0 }}>Tessera Lumen</p>
           <h1 style={{ fontFamily: "Cinzel,serif", fontSize: "clamp(0.9rem,3vw,1.1rem)", color: "#D4AF37", margin: "2px 0 0", letterSpacing: "0.1em" }}>{title}</h1>
         </div>
-        <div style={{ width: "60px" }} />
       </div>
 
       {/* Content */}

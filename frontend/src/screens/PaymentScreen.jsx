@@ -1,84 +1,37 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import ScreenWrapper from "../components/ScreenWrapper.jsx";
 import GoldButton from "../components/GoldButton.jsx";
 import Divider from "../components/Divider.jsx";
 import { useApp } from "../context/AppContext.jsx";
 import { useTranslation } from "react-i18next";
-import { buyProduct, consumePurchase } from "../utils/huaweiIap.js";
-import { initiatePayFastPayment } from "../utils/payfast.js";
+import { processPayment } from "../services/PaymentEngine.js";
 
 export default function PaymentScreen() {
-  const { goTo, selectedPackage, setIsPaid, user, setPaymentPending } = useApp();
+  const { goTo, selectedPackage, setIsPaid, user, setPaymentPending, setDrawnCards, setImmutableReadings } = useApp();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handlePay = async () => {
     if (!selectedPackage) return;
-
-    // [EVIDENCE] 4. Router/Auth Before Redirect
-    console.log("--- [EVIDENCE] 4 & 5. STATE BEFORE REDIRECT ---");
-    console.log("Current Route:", "payment");
-    console.log("User Context:", JSON.stringify(user));
-    console.log("Selected Package:", JSON.stringify(selectedPackage));
-    console.log("Local Storage Keys:", Object.keys(localStorage));
-    console.log("Redirecting to: PayFast Sandbox");
-    console.log("----------------------------------------------");
-
     setLoading(true);
     setError("");
+    // Clear any previous readings (e.g. from free trial) before starting new payment
+    setDrawnCards([]);
+    setImmutableReadings([]);
 
-    try {
-      // Set pending state before leaving the app
-      setPaymentPending({
-        type: "standard",
-        pkgId: selectedPackage.id,
-        timestamp: Date.now()
-      });
-
-      await initiatePayFastPayment(selectedPackage, user);
-      return;
-    } catch (payFastErr) {
-      console.error("[EVIDENCE] PayFast Trigger Error:", payFastErr);
-      setPaymentPending(null); // Clear on immediate error
-    }
-
-    // Huawei Fallback
-    try {
-      let productId = "";
-      let type = 0;
-      if (selectedPackage.id === 1) productId = "Quick.Insight";
-      else if (selectedPackage.id === 2) productId = "Past.Present.Future";
-      else if (selectedPackage.id === 3) productId = "Deep.Dive";
-      else if (selectedPackage.id === 4) { productId = "10.Readings_Month"; type = 2; }
-      else if (selectedPackage.id === 5) { productId = "20.Readings_Month"; type = 2; }
-      else if (selectedPackage.id === 6) { productId = "30.Readings_Month"; type = 2; }
-
-      const purchase = await buyProduct(productId, type);
-      const verifyRes = await fetch("/api/huawei/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ purchaseData: purchase.purchaseData, signature: purchase.signature, email: user.email, name: user.name })
-      });
-
-      if (!verifyRes.ok) throw new Error("Verification failed");
-      if (type === 0) {
-        const data = JSON.parse(purchase.purchaseData);
-        await consumePurchase(data.purchaseToken);
+    await processPayment(selectedPackage, user, {
+      onSuccess: () => {
+        console.log("PAYMENT SUCCESS CALLBACK FIRED");
+        setIsPaid(true);
+        setLoading(false);
+        goTo("reveal");
+      },
+      onError: (msg) => {
+        setError(msg);
+        setLoading(false);
       }
-      setIsPaid(true);
-      goTo("reveal");
-    } catch (err) {
-      setError(err.message || t("paymentError"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSimulateSuccess = () => {
-    console.log("[EVIDENCE] Simulating payment success");
-    setIsPaid(true);
-    goTo("reveal");
+    });
   };
 
   return (
@@ -93,12 +46,12 @@ export default function PaymentScreen() {
           {selectedPackage && (
             <div className="glass-gold rounded-2xl p-5">
               <p className="font-cinzel text-[10px] tracking-[0.2em] uppercase mb-3" style={{ color: "#D4AF37" }}>{t("paymentSelected")}</p>
-              <div className="flex justify-between items-start gap-3">
+              <div className="flex justify-between items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="font-cinzel text-sm text-white">{selectedPackage.name}</p>
                   <p className="font-cormorant text-sm italic mt-0.5" style={{ color: "rgba(240,232,216,0.55)" }}>{selectedPackage.desc}</p>
                 </div>
-                <span className="font-cinzel text-lg shrink-0" style={{ color: "#D4AF37" }}>{selectedPackage.price}</span>
+                <div className="animate-glow-pulse" style={{border:"1.5px solid rgba(212,175,55,0.6)",borderRadius:"10px",padding:"10px 16px",background:"linear-gradient(135deg,rgba(10,12,26,0.9),rgba(26,21,53,0.8))",flexShrink:0,textAlign:"center",minWidth:"80px"}}><span className="font-cinzel font-bold" style={{fontSize:"1rem",color:"#f0d060",letterSpacing:"0.03em",textShadow:"0 0 8px rgba(212,175,55,0.5)"}}>{selectedPackage.price}</span></div>
               </div>
             </div>
           )}
@@ -107,12 +60,15 @@ export default function PaymentScreen() {
             <p className="font-cormorant text-base italic leading-relaxed" style={{ color: "rgba(240,232,216,0.6)" }}>{t("paymentAwaitsBody")}</p>
           </div>
           {error && <p className="text-red-400 text-center font-cormorant text-sm px-4">{error}</p>}
-          <div className="mt-4 px-10">
-            <button onClick={handleSimulateSuccess} className="w-full py-3 rounded-xl border border-dashed border-[#D4AF37]/40 text-[#D4AF37]/60 font-cinzel text-[10px] tracking-widest uppercase hover:bg-white/5 transition-all">Skip to Reveal (Sandbox Test)</button>
-          </div>
         </div>
-        <div className="mt-auto pt-8 pb-8 animate-fade-in-up delay-400">
+        <div className="mt-auto pt-8 pb-8 flex flex-col gap-3 animate-fade-in-up delay-400">
           <GoldButton onClick={handlePay} disabled={loading || !selectedPackage}>{loading ? t("paymentProcessing") : t("paymentBtn")}</GoldButton>
+          <button
+            onClick={() => goTo("packages")}
+            className="w-full py-4 rounded-xl border border-white/10 text-white/70 font-cinzel text-xs tracking-widest hover:border-white/20 transition-all"
+          >
+            {t("changePackage") || "Change Selection"}
+          </button>
         </div>
       </div>
     </ScreenWrapper>

@@ -21,3 +21,12 @@ frontend/dist/
 frontend/android/
 *.log
 .env*
+
+# Security - Private keys
+*.p8
+*.pem
+*.key
+
+
+# Android signing credentials
+android-webview/gradle.properties

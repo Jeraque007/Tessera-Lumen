@@ -1,7 +1,8 @@
 import { useState } from "react";
+import SEO from "../components/SEO.jsx";
 import ScreenWrapper from "../components/ScreenWrapper.jsx";
 import GoldButton from "../components/GoldButton.jsx";
-import Divider from "../components/Divider.jsx";
+
 import { useApp } from "../context/AppContext.jsx";
 import { useTranslation } from "react-i18next";
 import { processPayment } from "../services/PaymentEngine.js";
@@ -36,12 +37,13 @@ export default function PaymentScreen() {
 
   return (
     <ScreenWrapper>
+      <SEO title="Secure Payment" description="Complete your purchase securely to unlock your personalized Tessera Lumen tarot reading." path="/payment" noindex={true} />
       <div className="flex flex-col min-h-screen px-6 pb-10">
         <div className="animate-fade-in-up mb-6 text-center" style={{ paddingTop: "64px" }}>
           <p className="font-cinzel text-[10px] tracking-[0.4em] uppercase mb-3" style={{ color: "#D4AF37" }}>{t("paymentTag")}</p>
           <h2 className="font-cinzel text-2xl font-bold" style={{ background: "linear-gradient(135deg,#f0d060,#D4AF37,#8a7020)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{t("paymentTitle")}</h2>
         </div>
-        <Divider />
+        
         <div className="flex flex-col gap-4 animate-fade-in-up delay-200">
           {selectedPackage && (
             <div className="glass-gold rounded-2xl p-5">
@@ -63,6 +65,17 @@ export default function PaymentScreen() {
         </div>
         <div className="mt-auto pt-8 pb-8 flex flex-col gap-3 animate-fade-in-up delay-400">
           <GoldButton onClick={handlePay} disabled={loading || !selectedPackage}>{loading ? t("paymentProcessing") : t("paymentBtn")}</GoldButton>
+          {/* Security Trust Badge */}
+          <div className="w-full py-4 px-5 rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/5 text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span className="font-cinzel text-[11px] tracking-[0.15em] text-[#D4AF37] font-bold uppercase">Secure Payment</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+            </div>
+            <p className="font-cormorant text-sm text-white/70 italic">Protected by PayFast</p>
+            <p className="font-cinzel text-[9px] tracking-[0.2em] text-white/40 mt-1 uppercase">PCI-DSS Compliant &bull; 256-bit SSL Encryption</p>
+          </div>
+
           <button
             onClick={() => goTo("packages")}
             className="w-full py-4 rounded-xl border border-white/10 text-white/70 font-cinzel text-xs tracking-widest hover:border-white/20 transition-all"

@@ -16,19 +16,31 @@ export const productIds = {
   ]
 };
 
-export async function checkIapEnv() {
+/**
+ * Unified Product Mapping for UI IDs to HMS Product IDs
+ */
+export const PRODUCT_MAP = {
+  1: { id: "Quick.Insight", type: 0 },
+  2: { id: "Past.Present.Future", type: 0 },
+  3: { id: "Deep.Dive", type: 0 },
+  4: { id: "10.Readings_Month", type: 2 },
+  5: { id: "20.Readings_Month", type: 2 },
+  6: { id: "30.Readings_Month1", type: 2 },
+  "deeper": { id: "Astrological.Chart.Reading", type: 0 }
+};
+
+export async function checkIapEnv(showResolution = false) {
   if (!window.Capacitor?.isNativePlatform?.()) {
     console.log("[HMS] Not a native platform, skipping HMS check");
     return false;
   }
   if (!HuaweiIap) {
     console.error("[HMS] HuaweiIap plugin NOT registered in Capacitor");
-    if (window.__HMS_DEBUG) alert("Error: HuaweiIap plugin not found. Check MainActivity registration.");
     return false;
   }
   try {
-    console.log("[HMS] checkIapEnv starting...");
-    const res = await HuaweiIap.isEnvReady();
+    console.log(`[HMS] checkIapEnv starting (showResolution: ${showResolution})...`);
+    const res = await HuaweiIap.isEnvReady({ showResolution });
     console.log("[HMS] isEnvReady result:", JSON.stringify(res));
     // 0 means environment is ready and HMS is available
     const isReady = res.status === 0 && res.returnCode === 0;
@@ -132,21 +144,19 @@ export function isHmsDevice() {
 /**
  * Async check if HMS IAP is available. Call once on app startup.
  * Sets window.__HMS_READY for sync access later.
+ * @param {boolean} showResolution - If true, triggers HMS login/update dialogs if needed.
  */
-export async function checkHmsReady() {
+export async function checkHmsReady(showResolution = false) {
   if (!window.Capacitor?.isNativePlatform?.()) {
     window.__HMS_READY = false;
     return false;
   }
   try {
-    const res = await HuaweiIap.isEnvReady();
+    // HMS COMPLIANCE: Use showResolution=false on startup to avoid "Startup Module" rejection.
+    // Reviewers reject apps that show system dialogs before the main UI is visible.
+    const res = await HuaweiIap.isEnvReady({ showResolution });
     const isReady = res.status === 0 && res.returnCode === 0;
     window.__HMS_READY = isReady;
-
-    // Diagnostic Alert for testing phase
-    if (!isReady && window.__HMS_DEBUG) {
-      alert(`HMS Check: Status ${res.status}, Return ${res.returnCode}. (0,0 expected)`);
-    }
 
     console.log("[HMS] checkHmsReady: " + isReady + " | Status: " + res.status + " | Return: " + res.returnCode);
     return isReady;
@@ -155,6 +165,15 @@ export async function checkHmsReady() {
     window.__HMS_READY = false;
     return false;
   }
+}
+
+/**
+ * Explicitly trigger HMS environment resolution.
+ * Call this when the user attempts a purchase if checkHmsReady was false.
+ */
+export async function resolveHmsEnv() {
+  console.log("[HMS] resolveHmsEnv: Triggering manual resolution...");
+  return await checkHmsReady(true);
 }
 
 /**
@@ -231,10 +250,17 @@ export async function consumeOrphanedPurchases() {
     for (let i = 0; i < purchases.length; i++) {
       try {
         const data = typeof purchases[i] === "string" ? JSON.parse(purchases[i]) : purchases[i];
-        const token = data.purchaseToken;
-        if (token) {
-          await HuaweiIap.consumePurchase({ purchaseToken: token });
-          console.log(`[HMS] Consumed orphaned purchase: ${data.productId || "unknown"}`);
+
+        // HMS Purchase State: 0 (Success), 1 (Cancelled), 2 (Refunded)
+        // We only want to auto-consume successful but "stuck" purchases
+        if (data.purchaseState === 0) {
+          const token = data.purchaseToken;
+          if (token) {
+            console.log(`[HMS] Consuming stuck success purchase: ${data.productId}`);
+            await HuaweiIap.consumePurchase({ purchaseToken: token });
+          }
+        } else {
+          console.log(`[HMS] Skipping orphaned purchase in state ${data.purchaseState}: ${data.productId}`);
         }
       } catch (e) {
         console.error("[HMS] Failed to consume orphaned purchase:", e);
@@ -242,5 +268,38 @@ export async function consumeOrphanedPurchases() {
     }
   } catch (e) {
     console.log("[HMS] Could not check for orphaned purchases:", e.message || e);
+  }
+}
+
+/**
+ * Open HMS Subscription Manager (HMS Compliance Requirement)
+ */
+export async function manageSubscriptions() {
+  if (!window.Capacitor?.isNativePlatform?.()) return;
+  try {
+    await HuaweiIap.manageSubscriptions();
+  } catch (e) {
+    console.error("[HMS] manageSubscriptions failed:", e);
+  }
+}
+
+/**
+ * Native Ambient Music Control (HMS Compliance: Start on user action only)
+ */
+export async function startNativeMusic() {
+  if (!window.Capacitor?.isNativePlatform?.()) return;
+  try {
+    await HuaweiIap.startBackgroundMusic();
+  } catch (e) {
+    console.warn("[HMS] startBackgroundMusic failed:", e);
+  }
+}
+
+export async function stopNativeMusic() {
+  if (!window.Capacitor?.isNativePlatform?.()) return;
+  try {
+    await HuaweiIap.stopBackgroundMusic();
+  } catch (e) {
+    console.warn("[HMS] stopBackgroundMusic failed:", e);
   }
 }

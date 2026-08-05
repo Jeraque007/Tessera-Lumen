@@ -3,7 +3,7 @@ main = "index.js"
 compatibility_date = "2024-01-01"
 
 [vars]
-HMS_REGION = "dra"
+HMS_REGION = "SG"
 BACKEND_URL = "https://app.963.co.za"
 HUAWEI_CLIENT_ID = "1707533721919297472"
 HUAWEI_APP_ID = "114450405"

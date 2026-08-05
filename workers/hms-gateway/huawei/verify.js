@@ -57,26 +57,23 @@ export async function handleHuaweiVerify(request, env, ctx) {
       return jsonResponse(evaluation.response, evaluation.status);
     }
 
-    // 6. Save to Database
-    const isDeeper = productId === "Astrological.Chart.Reading";
-    const planMap = {
-      "Quick.Insight": 1,
-      "Past.Present.Future": 2,
-      "Deep.Dive": 3,
-      "10.Readings_Month": 4,
-      "20.Readings_Month": 5,
-      "30.Readings_Month1": 6,
-    };
-
-    await savePayment(env, {
+    // 6. RELAY: Send the verified result to the main backend
+    // The main backend will handle DB logging and business logic.
+    // This allows the Worker to act as a China-friendly connectivity bridge.
+    const relayResponse = await relayToBackend(config.backendUrl, {
       orderId, purchaseToken, email, name, productId,
       purchaseData, signature, verifyResult, requestId,
       hmsVerified: evaluation.hmsVerified,
       alreadyConsumed: evaluation.alreadyConsumed,
-      planId: planMap[productId] || null,
       isSubscription,
       isDeeper
-    }, requestId);
+    });
+
+    if (!relayResponse.ok) {
+       logger.warn(`[${requestId}] Backend relay failed: ${relayResponse.status}`);
+       // Fallback: We still want to let the user through if HMS said it's OK,
+       // but we should warn that backend sync might be delayed.
+    }
 
     // 7. Consume Purchase (if applicable)
     const consumption = await consumeIfNeeded(
@@ -112,6 +109,20 @@ async function validateRequest(request, requestId) {
     return { body };
   } catch (e) {
     return { error: "Invalid JSON body", status: 400 };
+  }
+}
+
+async function relayToBackend(backendUrl, data) {
+  const url = `${backendUrl}/api/payment/huawei/verify`;
+  try {
+    return await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+  } catch (e) {
+    logger.error(`[Relay] Failed to reach backend: ${e.message}`);
+    return { ok: false, status: 500 };
   }
 }
 

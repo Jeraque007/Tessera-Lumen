@@ -1,7 +1,8 @@
 import { useState } from "react";
+import SEO from "../components/SEO.jsx";
 import ScreenWrapper from "../components/ScreenWrapper.jsx";
 import TpButton from "../components/TpButton.jsx";
-import Divider from "../components/Divider.jsx";
+
 import { useApp } from "../context/AppContext.jsx";
 import { useTranslation } from "react-i18next";
 import AmbientAudio from "../utils/ambient-audio-manager.js";
@@ -27,8 +28,9 @@ export default function IntentionScreen() {
   const [showCustomInput, setShowCustomInput] = useState(false);
 
   const handleSelect = async (card) => {
-    // Ensure audio is ready and play the .wav sound
+    // Ensure audio is ready, start ambient loop if not playing, and play the .wav sound
     await AmbientAudio.init();
+    AmbientAudio.startAmbient();
     AmbientAudio.onCardTouch();
 
     if (card.id === "other") {
@@ -49,6 +51,7 @@ export default function IntentionScreen() {
 
   return (
     <ScreenWrapper>
+      <SEO title="Set Your Intention" description="Choose your focus area for your tarot reading. Whether love, career, family or spiritual path, Tessera Lumen guides your sacred inquiry." path="/intention" noindex={true} />
       <div className="flex flex-col min-h-screen px-4 py-10 sm:px-6">
 
         <div className="animate-fade-in-up pt-10 mb-6 text-center">
@@ -59,12 +62,12 @@ export default function IntentionScreen() {
           <h2 className="font-cinzel text-2xl font-bold text-gold-gradient mb-4">
             {t("intentionTitle")}
           </h2>
-          <p className="font-cormorant text-base italic text-white/60 max-w-md mx-auto">
+          <p className="font-cormorant text-lg italic max-w-md mx-auto" style={{ color: "rgba(240, 224, 180, 0.85)", textShadow: "0 0 12px rgba(212,175,55,0.2)" }}>
             {t("intentionBody")}
           </p>
         </div>
 
-        <Divider />
+        
 
         {/* 4x2 CARD GRID */}
         <div

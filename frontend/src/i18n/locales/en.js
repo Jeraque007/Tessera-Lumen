@@ -1,4 +1,4 @@
-export default {
+﻿export default {
   // Global
   appName: "Tessera Lumen",
   sacredSpace: "Sacred Space",
@@ -44,12 +44,12 @@ export default {
   packagesSub: "Subscription",
   packagesBtn: "Continue",
   packages: [
-    { id: 1, type: "one-time", name: "Quick Insight",          price: "$3.99",     desc: "A single card for immediate clarity",          cards: 1 },
+    { id: 1, type: "one-time", name: "Quick Insight",          price: "$1.99",     desc: "A single card for immediate clarity",          cards: 1 },
     { id: 2, type: "one-time", name: "Past, Present, Future",  price: "$9.99",     desc: "Three card spread revealing your journey",     cards: 3 },
-    { id: 3, type: "one-time", name: "Deep Dive",              price: "$19.99",    desc: "Five card spread for profound insight",        cards: 5 },
+    { id: 3, type: "one-time", name: "Deep Dive",              price: "$14.99",    desc: "Five card spread for profound insight",        cards: 5 },
     { id: 4, type: "sub",      name: "10 Readings / Month",    price: "$9.99/mo",  desc: "1 card read per day",                 cards: 1 },
-    { id: 5, type: "sub",      name: "20 Readings / Month",    price: "$17.99/mo", desc: "2 card reads per day",                         cards: 1 },
-    { id: 6, type: "sub",      name: "30 Readings / Month",    price: "$24.99/mo", desc: "3 card reads per day",              cards: 1 },
+    { id: 5, type: "sub",      name: "20 Readings / Month",    price: "$17.99/mo", desc: "2 card reads per day",                         cards: 2 },
+    { id: 6, type: "sub",      name: "30 Readings / Month",    price: "$24.99/mo", desc: "3 card reads per day",              cards: 3 },
   ],
 
   // Payment
@@ -126,10 +126,10 @@ export default {
   privacyNoticeReject: "Reject",
   languages: {
     en: "English",
-    es: "Español",
-    fr: "Français",
+    es: "EspaÃ±ol",
+    fr: "FranÃ§ais",
     de: "Deutsch",
-    pt: "Português",
+    pt: "PortuguÃªs",
   },
 };
 

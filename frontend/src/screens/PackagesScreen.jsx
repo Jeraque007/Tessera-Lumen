@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import SEO from "../components/SEO.jsx";
 import ScreenWrapper from "../components/ScreenWrapper.jsx";
 import GoldButton from "../components/GoldButton.jsx";
@@ -6,6 +6,7 @@ import FreeCardPromo from "../components/FreeCardPromo.jsx";
 
 import { useApp } from "../context/AppContext.jsx";
 import { useTranslation } from "react-i18next";
+import { apiUrl } from "../utils/apiBase.js";
 // UI uses Strategy Pattern via services/payments
 
 function PkgCard({ pkg, selected, onSelect, disabled }) {
@@ -37,11 +38,24 @@ export default function PackagesScreen() {
   const { t } = useTranslation();
   const [selected, setSelected] = useState(selectedPackage);
   const [hmsPrices, setHmsPrices] = useState({});
+  const [promoEnabled, setPromoEnabled] = useState(true);
 
   const thisMonth = new Date().toISOString().substring(0, 7);
   const monthlyCount = drawHistory?.monthly?.month === thisMonth ? drawHistory.monthly.count : 0;
 
   useEffect(() => {
+    const fetchPromoStatus = async () => {
+      try {
+        const res = await fetch(apiUrl("/api/promo/free-card/status"));
+        if (!res.ok) return;
+        const data = await res.json();
+        setPromoEnabled((data?.remaining ?? 0) > 0);
+      } catch (e) {
+        console.warn("[Packages] Promo status check failed:", e);
+        setPromoEnabled(true);
+      }
+    };
+
     // 1. Fetch Localized Prices from Provider (Unified Strategy)
     const fetchPrices = async () => {
       try {
@@ -57,6 +71,7 @@ export default function PackagesScreen() {
         console.warn("[Packages] Price fetch skipped or failed:", e);
       }
     };
+    fetchPromoStatus();
     fetchPrices();
   }, []);
 
@@ -115,7 +130,7 @@ export default function PackagesScreen() {
         </div>
         
         <div className="flex flex-col gap-3 w-full animate-fade-in-up delay-200">
-          <FreeCardPromo />
+          {promoEnabled && <FreeCardPromo />}
           <p className="font-cinzel text-[9px] tracking-[0.28em] text-[#D4AF37]/80 uppercase mb-1">{t("packagesOneTime")}</p>
           {oneTime.map(pkg => (
             <PkgCard key={pkg.id} pkg={pkg} selected={selected?.id===pkg.id} onSelect={setSelected} />
@@ -143,8 +158,6 @@ export default function PackagesScreen() {
           >
             Direct Deep Dive Access
           </button>
-          <button onClick={() => { setSelectedPackage({ id: 2, type: "one-time", name: "PPF", cards: 3 }); localStorage.setItem("tl_is_paid", "true"); goTo("reveal"); }} className="w-full py-4 rounded-xl border-2 border-green-500 text-green-400 font-cinzel text-xs tracking-widest uppercase">TEST 3-CARD REVEAL</button>
-          <button onClick={() => { setSelectedPackage({ id: 3, type: "one-time", name: "Deep", cards: 5 }); localStorage.setItem("tl_is_paid", "true"); goTo("reveal"); }} className="w-full py-4 rounded-xl border-2 border-green-500 text-green-400 font-cinzel text-xs tracking-widest uppercase">TEST 5-CARD REVEAL</button>
         </div>
       </div>
     </ScreenWrapper>

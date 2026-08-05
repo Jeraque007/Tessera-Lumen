@@ -1,26 +1,17 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const gradlePath = path.join(__dirname, '../frontend/android/app/build.gradle');
-let content = fs.readFileSync(gradlePath, 'utf8');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// 1. Increment versionCode
-const versionCodeRegex = /versionCode\s+(\d+)/;
-const currentVersionCode = parseInt(content.match(versionCodeRegex)[1]);
-const nextVersionCode = currentVersionCode + 1;
-content = content.replace(versionCodeRegex, `versionCode ${nextVersionCode}`);
+const packagePath = path.join(__dirname, '..', 'package.json');
+const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
 
-// 2. Increment versionName (e.g., 1.0.7 -> 1.0.8)
-const versionNameRegex = /versionName\s+"([^"]+)"/;
-const currentVersionName = content.match(versionNameRegex)[1];
-const parts = currentVersionName.split('.');
-if (parts.length === 3) {
-    parts[2] = parseInt(parts[2]) + 1;
-    const nextVersionName = parts.join('.');
-    content = content.replace(versionNameRegex, `versionName "${nextVersionName}"`);
-    console.log(`[Version] Updated: ${currentVersionName} (${currentVersionCode}) -> ${nextVersionName} (${nextVersionCode})`);
-} else {
-    console.log(`[Version] Updated versionCode to ${nextVersionCode}. Manual versionName update required.`);
-}
+// Increment patch version
+const parts = pkg.version.split('.');
+parts[2] = parseInt(parts[2]) + 1;
+pkg.version = parts.join('.');
 
-fs.writeFileSync(gradlePath, content);
+fs.writeFileSync(packagePath, JSON.stringify(pkg, null, 2));
+console.log(`[Version] Incremented to ${pkg.version}`);

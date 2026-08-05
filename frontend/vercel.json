@@ -12,6 +12,14 @@
       "destination": "/api/$1"
     },
     {
+      "source": "/privacy",
+      "destination": "/privacy/index.html"
+    },
+    {
+      "source": "/privacy/(.*)",
+      "destination": "/privacy/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

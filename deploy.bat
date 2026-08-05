@@ -1,22 +1,34 @@
 @echo off
-echo [1/2] DEPLOYING TO VERCEL (Frontend & Brain)...
-:: Running from root to include the /api folder and use root vercel.json
-call npx vercel --prod
+setlocal
+title Tessera Lumen: Deploy
 
-echo [2/3] DEPLOYING TO CLOUDFLARE (HMS Gateway)...
-pushd workers\hms-gateway
-call npx wrangler deploy -c hms-wrangler.toml
-popd
+echo ===================================================
+echo   TESSERA LUMEN: PRODUCTION DEPLOY
+echo ===================================================
+echo.
+echo   PayFast: payment gateway
+echo   Supabase: users, payments, subscriptions
+echo   Vercel: web app + privacy page + API functions
+echo.
+echo ===================================================
+echo.
 
-echo [3/3] DEPLOYING TO CLOUDFLARE (Privacy Worker)...
-pushd workers\privacy
-call npx wrangler deploy -c wrangler.jsonc
-popd
+:: Deploy to Vercel (Vercel dashboard Root Directory = "frontend")
+echo [1/1] Deploying to Vercel...
+call npx -y vercel --prod --force --yes
+if errorlevel 1 (
+    echo.
+    echo [ERROR] Vercel deploy failed.
+    pause
+    exit /b 1
+)
 
 echo.
 echo ===================================================
-echo   ALL DEPLOYMENTS COMPLETE
-echo   Frontend: https://app.963.co.za
-echo   Gateway:  https://verify.963.co.za
+echo   DEPLOY COMPLETE
+echo.
+echo   Web app live at: https://app.963.co.za
+echo   Privacy page at: https://app.963.co.za/privacy
 echo ===================================================
 pause
+endlocal

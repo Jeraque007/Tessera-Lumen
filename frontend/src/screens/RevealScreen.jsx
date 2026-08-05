@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
 import SEO from "../components/SEO.jsx";
 import { motion, AnimatePresence } from "framer-motion";
 import ScreenWrapper from "../components/ScreenWrapper.jsx";
@@ -61,22 +61,23 @@ export default function RevealScreen() {
   const isSub = selectedPackage?.type === "sub";
   const subLimitDaily = useMemo(() => {
     if (!isSub) return 999;
-    return Math.floor((parseInt(selectedPackage.cards) || 10) / 10);
+    return parseInt(selectedPackage.cards) || 1;
   }, [selectedPackage, isSub]);
   const subLimitMonthly = useMemo(() => {
     if (!isSub) return 999;
-    return parseInt(selectedPackage.cards) || 10;
+    const daily = parseInt(selectedPackage.cards) || 1;
+    return daily * 10; // 10/20/30 reads per month
   }, [selectedPackage, isSub]);
   const hasReachedLimit = isSub && (dailyCount >= subLimitDaily || monthlyCount >= subLimitMonthly);
 
   const sessionLimit = useMemo(() => {
-    if (isSub) return subLimitDaily;
+    if (isSub) return 1; // Subscriptions: 1 card per reading session
     const id = String(selectedPackage?.id);
     if (id === "1" || id === "quick-insight") return 1;
     if (id === "2" || id === "past-present-future") return 3;
     if (id === "3" || id === "deep-dive") return 5;
     return 1;
-  }, [selectedPackage, isSub, subLimitDaily]);
+  }, [selectedPackage, isSub]);
 
   // Single card state
   const [currentReading, setCurrentReading] = useState(null);
@@ -92,6 +93,7 @@ export default function RevealScreen() {
   const [cardSyntheses, setCardSyntheses] = useState([]);
   const [viewingCardIndex, setViewingCardIndex] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState({ type: "idle", text: "" });
 
   // Fan state
   const containerRef = useRef(null);
@@ -244,16 +246,14 @@ export default function RevealScreen() {
         daily: { date: today, count: (prev.daily.date === today ? prev.daily.count : 0) + 1 },
         monthly: { month: thisMonth, count: (prev.monthly.month === thisMonth ? prev.monthly.count : 0) + 1 }
       }));
-      setPhase("revealed");
       setIsPaid(true);
       localStorage.setItem("tl_is_paid", "true");
 
       setSingleSynthesis(null);
       setSynthesisLoading(true);
-      generateSingleSynthesis(resolvedCard, intention).then(text => {
-        setSingleSynthesis(text);
-        setSynthesisLoading(false);
-      }).catch(() => setSynthesisLoading(false));
+      const generatedSynthesis = await generateSingleSynthesis(resolvedCard, intention);
+      setSingleSynthesis(generatedSynthesis);
+      setPhase("revealed");
 
       if (selectedPackage?.type === "free") {
         setFreeReadingUsed(true);
@@ -263,6 +263,8 @@ export default function RevealScreen() {
     } catch (err) {
       console.error("Reveal failed:", err);
       setPhase("fan");
+    } finally {
+      setSynthesisLoading(false);
     }
   };
 
@@ -270,17 +272,37 @@ export default function RevealScreen() {
   const handleSaveSingle = async () => {
     if (!currentReading) return;
     setSaving(true);
-    const exported = await renderReadingCard(currentReading, singleSynthesis);
-    await dispatchExport(exported);
-    setSaving(false);
+    setSaveStatus({ type: "progress", text: "Preparing your sacred record..." });
+
+    try {
+      const exported = await renderReadingCard(currentReading, singleSynthesis);
+      const ok = await dispatchExport(exported);
+      if (!ok) throw new Error("Export dispatch failed");
+      setSaveStatus({ type: "success", text: "Your reading is ready to save." });
+    } catch (error) {
+      console.error("[Reveal] Single save failed:", error);
+      setSaveStatus({ type: "error", text: "Could not prepare your reading. Please try again." });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSaveSpread = async () => {
     if (!allReadings.length) return;
     setSaving(true);
-    const exported = await renderSpreadCards(allReadings, cardSyntheses);
-    await dispatchBundleExport(exported);
-    setSaving(false);
+    setSaveStatus({ type: "progress", text: "Preparing your spread export..." });
+
+    try {
+      const exported = await renderSpreadCards(allReadings, cardSyntheses);
+      const ok = await dispatchBundleExport(exported);
+      if (!ok) throw new Error("Spread export dispatch failed");
+      setSaveStatus({ type: "success", text: "Your spread is ready to save." });
+    } catch (error) {
+      console.error("[Reveal] Spread save failed:", error);
+      setSaveStatus({ type: "error", text: "Could not prepare your spread. Please try again." });
+    } finally {
+      setSaving(false);
+    }
   };
 
   // --- Render Fan ---
@@ -424,8 +446,13 @@ export default function RevealScreen() {
               <div className="w-full max-w-[400px] flex flex-col gap-4 mt-10 mb-20 px-2">
                 <button onClick={handleSaveSingle} disabled={saving}
                   className="w-full py-4 rounded-xl bg-[#D4AF37] text-[#060810] font-cinzel text-[11px] font-bold tracking-[0.3em] uppercase shadow-[0_0_20px_rgba(212,175,55,0.4)] active:scale-95 transition-all disabled:opacity-50">
-                  {saving ? "SAVING..." : "SAVE READING TO DEVICE"}
+                  {saving ? "PREPARING..." : "SAVE READING TO DEVICE"}
                 </button>
+                {saveStatus.text && (
+                  <p className={`font-cormorant text-sm text-center ${saveStatus.type === "error" ? "text-red-300" : "text-[#f0d060]"}`}>
+                    {saveStatus.text}
+                  </p>
+                )}
                 <button onClick={() => goTo("packages")}
                   className="w-full py-4 rounded-2xl border border-white/10 text-white/40 font-cinzel text-[11px] tracking-[0.3em] uppercase hover:text-white/60 transition-all">
                   Begin New Reading
@@ -520,8 +547,13 @@ export default function RevealScreen() {
                 <div className="w-full max-w-[400px] flex flex-col gap-4 mt-6">
                   <button onClick={handleSaveSpread} disabled={saving || synthesisLoading}
                     className="w-full py-4 rounded-xl bg-[#D4AF37] text-[#060810] font-cinzel text-[11px] font-bold tracking-[0.3em] uppercase shadow-[0_0_20px_rgba(212,175,55,0.4)] active:scale-95 transition-all disabled:opacity-50">
-                    {saving ? "SAVING..." : synthesisLoading ? "CHANNELING..." : "SAVE READING TO DEVICE"}
+                    {saving ? "PREPARING..." : synthesisLoading ? "CHANNELING..." : "SAVE READING TO DEVICE"}
                   </button>
+                  {saveStatus.text && (
+                    <p className={`font-cormorant text-sm text-center ${saveStatus.type === "error" ? "text-red-300" : "text-[#f0d060]"}`}>
+                      {saveStatus.text}
+                    </p>
+                  )}
                   <button onClick={() => goTo("packages")}
                     className="w-full py-4 rounded-2xl border border-white/10 text-white/40 font-cinzel text-[11px] tracking-[0.3em] uppercase hover:text-white/60 transition-all">
                     Begin New Reading

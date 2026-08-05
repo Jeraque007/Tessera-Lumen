@@ -16,6 +16,7 @@ export const PILLARS = [
 export const CARDS = [
   {
     "number": 1,
+    "blurhash": "L36@V;9F00E1~W-pM{Rj00-;^P9F",
     "image": "/cards/No 1 - The First Light.jpeg",
     "title_en": "The First Light",
     "pillar_en": "PILLAR I - THE AWAKENING",

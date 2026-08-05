@@ -3,13 +3,19 @@ export const HMS_REGIONS = {
   EUROPE: 'dre',
   RUSSIA: 'drru',
   ASIA: 'dra',
+  SINGAPORE: 'dra', // Map SG to the dra routing area
 };
 
-export const getHmsEndpoints = (region = HMS_REGIONS.ASIA) => ({
-  TOKEN: "https://oauth-login.cloud.huawei.com/oauth2/v3/token",
-  ORDER: `https://orders-${region}.iap.cloud.huawei.com/applications/v2/purchases/get`,
-  CONSUME: `https://orders-${region}.iap.cloud.huawei.com/applications/v2/purchases/consume`,
-});
+export const getHmsEndpoints = (regionInput = 'dra') => {
+  // Normalize SG or dra to the correct routing area
+  const region = regionInput.toLowerCase() === 'sg' ? 'dra' : regionInput.toLowerCase();
+
+  return {
+    TOKEN: "https://oauth-login.cloud.huawei.com/oauth2/v3/token",
+    ORDER: `https://orders-${region}.iap.cloud.huawei.com/applications/v2/purchases/get`,
+    CONSUME: `https://orders-${region}.iap.cloud.huawei.com/applications/v2/purchases/consume`,
+  };
+};
 
 export const HMS_CODES = {
   SUCCESS: '0',

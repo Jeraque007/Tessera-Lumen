@@ -1,20 +1,15 @@
-﻿import { useApp } from "../../context/AppContext.jsx";
+import { useApp } from "../../context/AppContext.jsx";
 
 const CONTACT_EMAIL = "holistic@963.co.za";
 
 export default function LegalPage({ title, subtitle, children, onBack }) {
-  const { goTo } = useApp();
+  const { goTo, previousScreen } = useApp();
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(to bottom, #0a0c1a, #060810)", color: "#f0e8d8", fontFamily: "Cormorant Garamond, Georgia, serif" }}>
       {/* Header */}
       <div style={{ borderBottom: "1px solid rgba(212,175,55,0.15)", padding: "16px 24px", display: "flex", alignItems: "center", gap: "16px", position: "sticky", top: 0, background: "rgba(6,8,16,0.95)", backdropFilter: "blur(12px)", zIndex: 60 }}>
-        <button
-          onClick={() => goTo("welcome")}
-          style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center" }}
-        >
-          <img src="/assets/logo.png" alt="Home" style={{ width: "65px", height: "auto" }} />
-        </button>
+        <img src="/transparent.logo.png" alt="Tessera Lumen" style={{ width: "65px", height: "auto" }} />
 
         <button onClick={onBack} style={{ background: "none", border: "none", color: "rgba(212,175,55,0.6)", cursor: "pointer", fontFamily: "Cinzel,serif", fontSize: "0.65rem", letterSpacing: "0.2em", padding: "4px 0", touchAction: "manipulation" }}>
            BACK

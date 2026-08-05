@@ -9,9 +9,9 @@
 
 export const PLANS = {
   // One-time readings  no quota tracking needed
-  1: { id: 1, type: "one-time", name: "Quick Insight",         priceUSD: "3.99",  cards: 1, readsLimit: null },
+  1: { id: 1, type: "one-time", name: "Quick Insight",         priceUSD: "1.99",  cards: 1, readsLimit: null },
   2: { id: 2, type: "one-time", name: "Past, Present, Future", priceUSD: "9.99",  cards: 3, readsLimit: null },
-  3: { id: 3, type: "one-time", name: "Deep Dive",             priceUSD: "19.99", cards: 5, readsLimit: null },
+  3: { id: 3, type: "one-time", name: "Deep Dive",             priceUSD: "14.99", cards: 5, readsLimit: null },
   // Subscriptions  1 card per reading, daily read limit enforced
   4: { id: 4, type: "sub", name: "10 Readings / Month",  priceUSD: "9.99",  cards: 1, readsLimit: 10, readsPerDay: 1 },
   5: { id: 5, type: "sub", name: "20 Readings / Month",  priceUSD: "17.99", cards: 1, readsLimit: 20, readsPerDay: 2 },

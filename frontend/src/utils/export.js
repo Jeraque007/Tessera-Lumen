@@ -169,8 +169,23 @@ export function buildHTML(user, intention, cards, positions) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Your Tessera Lumen Reading</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   <style>
+    /* LOCAL FONTS INLINE (China Compliance & Performance) */
+    @font-face {
+      font-family: 'Cinzel';
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: url('https://app.963.co.za/fonts/cinzel-regular.woff2') format('woff2');
+    }
+    @font-face {
+      font-family: 'Cormorant Garamond';
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: url('https://app.963.co.za/fonts/cormorant-regular.woff2') format('woff2');
+    }
+
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:"Cormorant Garamond",Georgia,serif;background:#060810;color:#f0e8d8;max-width:680px;margin:0 auto;padding:40px 20px}
     h1{font-family:"Cinzel",serif;color:#D4AF37;text-align:center;font-size:2rem;letter-spacing:0.1em;margin-bottom:4px}

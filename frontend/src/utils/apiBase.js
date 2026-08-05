@@ -1,28 +1,45 @@
-// API Base URLs
-// PRODUCTION: Main gateway for live users
-const PRODUCTION_API = "https://verify.963.co.za";
+import { Capacitor } from "@capacitor/core";
 
-// STAGING: Used for sandbox testing and debug builds
-// Update this if you have a separate staging server (e.g., https://staging-verify.963.co.za)
-const STAGING_API = "https://verify.963.co.za";
+// API Base URLs
+const GATEWAY_URL = "https://verify.963.co.za";
 
 export function getApiBase() {
-  // If we are on a native device (APK)
-  if (window.Capacitor?.isNativePlatform?.()) {
-    // import.meta.env.DEV is true when Vite is built with --mode development
-    if (import.meta.env.DEV) {
-      console.log("[API] Using STAGING/DEBUG environment");
-      return STAGING_API;
-    }
-    return PRODUCTION_API;
+  // HYBRID ARCHITECTURE:
+  // Native Android (APK) uses the Cloudflare Gateway to bypass China Firewall.
+  // Web platforms use the relative path (Vercel).
+  if (Capacitor.isNativePlatform()) {
+    return GATEWAY_URL;
   }
 
-  // On the web (Vercel/Localhost), use empty string for relative proxying
   return "";
+}
+
+export async function fetchWithTimeout(url, options = {}, timeout = 5000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
 }
 
 export function apiUrl(path) {
   const base = getApiBase();
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  // If base is empty (relative proxy), just return path
+  if (!base) return cleanPath;
+
+  // If the base already ends with the start of the path, avoid doubling up
+  // e.g. base: ".../api" and path: "/api/payfast" -> ".../api/payfast"
+  const url = new URL(base);
+  if (url.pathname !== "/" && cleanPath.startsWith(url.pathname)) {
+      return url.origin + cleanPath;
+  }
+
   return base + cleanPath;
 }

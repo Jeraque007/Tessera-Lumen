@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import { supabase, logPayment, activateSubscription } from "../lib/supabase.js";
-import nodeFetch from "node-fetch";
 
 const MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID;
 const MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY;
@@ -46,35 +45,52 @@ function generateSignature(data, passphrase = "") {
 
 export const initiate = async (req, res) => {
   try {
-    const { package: pkg, user } = req.body;
+    const { package: pkg, user, native } = req.body;
     if (!pkg || !user) return res.status(400).json({ error: "Missing package or user data" });
 
     const protocol = req.headers["x-forwarded-proto"] || "https";
     const host = req.headers["host"];
     const SITE_URL = `${protocol}://${host}`;
 
+    // If it's a native app, we return through the Cloudflare Gateway to handle the
+    // Zero-Touch Intent redirect (bypassing the "Open in app?" prompt).
+    const GATEWAY_URL = "https://verify.963.co.za";
+    const RETURN_BASE = native ? GATEWAY_URL : SITE_URL;
+
     const isSubscription = pkg.type === "sub";
     const isDeeper = pkg.type === "deeper";
 
-    // Use current ZAR rate (default to 19.00 if fetch fails)
-    let exchangeRate = 19.00;
+    // BREAK THE LOOP: Use local logic instead of fetching /api/fx/rate from itself
+    let exchangeRate = 19.10;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
     try {
-      const rateRes = await nodeFetch(`${SITE_URL}/api/fx/rate`);
-      if (rateRes.ok) {
-        const rateData = await rateRes.json();
-        exchangeRate = rateData.rate || 19.00;
-      }
-    } catch (_) {}
+      const fxRes = await fetch("https://api.exchangerate-api.com/v4/latest/USD", {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      const fxData = await fxRes.json();
+      exchangeRate = fxData.rates['ZAR'] || 19.10;
+    } catch (_) {
+      console.warn("[PayFast] FX fetch aborted or failed, using fallback exchange rate");
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     const usdAmount = parseFloat(pkg.priceUSD || pkg.price || "9.99");
     const localAmount = (usdAmount * exchangeRate).toFixed(2);
 
     const pfData = {};
-    pfData.merchant_id = MERCHANT_ID.trim();
-    pfData.merchant_key = MERCHANT_KEY.trim();
+    pfData.merchant_id = (MERCHANT_ID || "").trim();
+    pfData.merchant_key = (MERCHANT_KEY || "").trim();
 
-    pfData.return_url = isDeeper ? `${SITE_URL}/?deeper_paid=1` : `${SITE_URL}/?paid=1`;
-    pfData.cancel_url = isDeeper ? `${SITE_URL}/?deeper_cancelled=1` : `${SITE_URL}/?cancelled=1`;
+    if (!pfData.merchant_id || !pfData.merchant_key) {
+      console.error("[PayFast] Missing Merchant Credentials");
+      return res.status(500).json({ error: "Server configuration error (Credentials)" });
+    }
+
+    pfData.return_url = isDeeper ? `${RETURN_BASE}/?deeper_paid=1` : `${RETURN_BASE}/?paid=1`;
+    pfData.cancel_url = isDeeper ? `${RETURN_BASE}/?deeper_cancelled=1` : `${RETURN_BASE}/?cancelled=1`;
     pfData.notify_url = `${SITE_URL}/api/payfast/notify`;
 
     const nameParts = (user.name || "Seeker").trim().split(" ");
@@ -120,7 +136,7 @@ export const notify = async (req, res) => {
       .map(key => `${key}=${pfEncode(pfData[key])}`)
       .join("&");
 
-    const valRes = await nodeFetch(`https://${host}/eng/query/validate`, {
+    const valRes = await fetch(`https://${host}/eng/query/validate`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: validateBody,
@@ -203,15 +219,34 @@ export const relay = (req, res) => {
   const { url, ...fields } = req.query;
   if (!url) return res.status(400).send("Missing URL");
 
+  // SECURITY: Only allow PayFast domains
+  const ALLOWED_RELAY_HOSTS = ["www.payfast.co.za", "sandbox.payfast.co.za"];
+  try {
+    const parsed = new URL(url);
+    if (!ALLOWED_RELAY_HOSTS.includes(parsed.hostname)) {
+      return res.status(403).send("Forbidden: Invalid relay target");
+    }
+  } catch {
+    return res.status(400).send("Invalid URL");
+  }
+
+  // SECURITY: HTML-escape all values to prevent XSS
+  const escapeHtml = (str) => String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+
   const formFields = Object.keys(fields)
-    .map(key => `<input type="hidden" name="${key}" value="${fields[key]}">`)
+    .map(key => `<input type="hidden" name="${escapeHtml(key)}" value="${escapeHtml(fields[key])}">`)
     .join("\n");
 
   const html = `
     <html>
       <head><title>Redirecting...</title></head>
       <body onload="document.forms[0].submit()">
-        <form method="POST" action="${url}">
+        <form method="POST" action="${escapeHtml(url)}">
           ${formFields}
           <button type="submit">Click here if not redirected</button>
         </form>

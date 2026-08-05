@@ -1,28 +1,28 @@
+import SEO from "../../components/SEO.jsx";
 import LegalPage, { Section, P, Ul, Li } from "./LegalPage.jsx";
 
 const CONTACT_EMAIL = "holistic@963.co.za";
 
 export default function PrivacyScreen({ onBack }) {
   return (
-    <LegalPage title="Privacy Policy" subtitle="Last updated: January 2026" onBack={onBack}>
+    <>
+      <SEO title="Privacy Policy" description="Learn how Tessera Lumen protects your personal data and privacy. Our commitment to keeping your spiritual journey confidential." path="/privacy" />
+      <LegalPage title="Privacy Policy" subtitle="Last updated: June 2026" onBack={onBack}>
 
       <Section title="Application and Developer Information">
         <P><strong>Application Name:</strong> Tessera Lumen</P>
-        <P><strong>Developer:</strong> Sylvana Anne Ellis</P>
-        <P><strong>Contact:</strong> holistic@963.co.za</P>
-        <P>This privacy policy applies to the Tessera Lumen mobile application and web application (app.963.co.za), developed and operated by Sylvana Anne Ellis.</P>
+        <P><strong>Developer:</strong> Sophia Code - Tessera Lumen</P>
+        <P><strong>Contact:</strong> {CONTACT_EMAIL}</P>
+        <P>This privacy policy applies to the Tessera Lumen mobile application and web application (app.963.co.za), developed and operated by Sophia Code - Tessera Lumen.</P>
       </Section>
 
       <Section title="1. Information We Collect">
         <P>When you use Tessera Lumen, we collect the following information:</P>
         <Ul>
           <Li>Name and email address (provided during personalisation)</Li>
-          <Li>Date of birth (used for personalisation only, not stored permanently)</Li>
-          <Li>Phone number (optional, provided for reading delivery)</Li>
-          <Li>Payment information (processed securely by PayFast  we do not store card details)</Li>
+          <Li>Date of birth (optional, used for personalisation only)</Li>
+          <Li>Payment information (processed securely by PayFast - we do not store card details)</Li>
           <Li>Subscription status and reading history</Li>
-          <Li>Language preference (stored locally on your device)</Li>
-          <Li>Device type and browser information (for technical optimisation)</Li>
         </Ul>
       </Section>
 
@@ -30,7 +30,6 @@ export default function PrivacyScreen({ onBack }) {
         <P>Your information is used to:</P>
         <Ul>
           <Li>Personalise your oracle reading experience</Li>
-          <Li>Deliver your reading via email or WhatsApp if requested</Li>
           <Li>Process and manage your subscription or one-time payment</Li>
           <Li>Track your reading quota and subscription status</Li>
           <Li>Communicate important account or service updates</Li>
@@ -40,109 +39,55 @@ export default function PrivacyScreen({ onBack }) {
       </Section>
 
       <Section title="3. Payment Processing">
-        <P>All payments are processed by PayFast, a PCI-DSS compliant payment gateway. Tessera Lumen does not store, process, or have access to your card details. PayFast&apos;s privacy policy governs the handling of your payment information.</P>
+        <P>All payments are processed by PayFast, a PCI-DSS compliant payment gateway. Tessera Lumen does not store, process, or have access to your card details.</P>
         <P>Payment confirmation notifications (ITN) are received from PayFast to activate your subscription or reading access.</P>
       </Section>
 
-      <Section title="4. Translation Services">
-        <P>If you select a language other than English, your reading content may be translated using the DeepL translation API. Translation requests are processed server-side. No personally identifiable information is included in translation requests.</P>
-        <P>Translated content is cached to improve performance and reduce API usage.</P>
+      <Section title="4. Data Storage">
+        <P>Your data is stored securely using Supabase (cloud database) with industry-standard encryption. Access is restricted to authorised systems only.</P>
       </Section>
 
-      <Section title="5. CRM and Communications">
-        <P>With your consent, your name and email may be stored in our CRM system (Zoho CRM) for the purpose of follow-up communications related to your reading experience. You may opt out at any time by contacting us at <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "#D4AF37" }}>{CONTACT_EMAIL}</a>.</P>
-      </Section>
-
-      <Section title="6. Local Storage and Cookies">
+      <Section title="5. Local Storage">
         <P>Tessera Lumen uses browser local storage to:</P>
         <Ul>
-          <Li>Remember your language preference</Li>
           <Li>Maintain your session state during a reading</Li>
           <Li>Store your subscription status locally for performance</Li>
         </Ul>
         <P>We do not use tracking cookies or third-party advertising cookies. No data is shared with advertising networks.</P>
       </Section>
 
-      <Section title="7. Data Retention">
-        <P>Personal information is retained for as long as your account is active or as required to provide the service. You may request deletion of your data at any time by contacting us at <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "#D4AF37" }}>{CONTACT_EMAIL}</a>. Payment records may be retained for legal and accounting purposes.</P>
+      <Section title="6. Data Retention">
+        <P>Personal information is retained for as long as your account is active or as required to provide the service. You may request deletion of your data at any time by contacting us at <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "#D4AF37" }}>{CONTACT_EMAIL}</a>.</P>
       </Section>
 
-      <Section title="8. Your Rights">
-        <P>Under applicable data protection law, you have the right to:</P>
+      <Section title="7. Your Rights">
+        <P>You have the right to:</P>
         <Ul>
           <Li>Access the personal information we hold about you</Li>
           <Li>Request correction of inaccurate information</Li>
           <Li>Request deletion of your personal data</Li>
-          <Li>Withdraw consent for communications at any time</Li>
-          <Li>Lodge a complaint with the relevant data protection authority</Li>
+          <Li>Withdraw consent at any time</Li>
         </Ul>
       </Section>
 
-      <Section title="9. Third-Party Services">
+      <Section title="8. Third-Party Services">
         <P>Tessera Lumen integrates with the following third-party services:</P>
         <Ul>
-          <Li>PayFast  payment processing</Li>
-          <Li>DeepL  translation services</Li>
-          <Li>Zoho CRM  customer relationship management</Li>
-          <Li>Vercel  hosting and infrastructure</Li>
-          <Li>Supabase  secure database and user management</Li>
+          <Li>PayFast - payment processing</Li>
+          <Li>Vercel - hosting and infrastructure</Li>
+          <Li>Supabase - secure database and user management</Li>
         </Ul>
-        <P>Each service operates under its own privacy policy. We encourage you to review their policies.</P>
+        <P>Each service operates under its own privacy policy.</P>
       </Section>
 
-      <Section title="10. Contact">
-        <P>For privacy-related enquiries, data requests, or to exercise your rights, please contact us directly:</P>
+      <Section title="9. Contact">
+        <P>For privacy-related enquiries, data requests, or to exercise your rights:</P>
         <P><a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "#D4AF37", fontFamily: "Cinzel, serif", letterSpacing: "0.1em" }}>{CONTACT_EMAIL}</a></P>
         <P>We aim to respond to all enquiries within 2 business days.</P>
       </Section>
 
-      <Section title="Chinese Version (中文)">
-        <P style={{ fontStyle: "normal" }}>
-          <strong>应用名称：</strong>Tessera Lumen<br/>
-          <strong>开发者：</strong>Sylvana Anne Ellis<br/>
-          <strong>联系方式：</strong>holistic@963.co.za<br/><br/>
-          本隐私政策适用于由 Sylvana Anne Ellis 开发和运营的 Tessera Lumen 移动应用程序和网络应用程序 (app.963.co.za)。<br/><br/>
-          <strong>数据处理地点：</strong>移动应用的用户数据通过华为 AppGallery Connect 基础设施在<strong>新加坡</strong>地区进行处理。<br/><br/>
-          <strong>我们收集的信息：</strong>姓名、电子邮件地址、出生日期（可选）。这些信息仅用于个性化您的阅读体验。<br/><br/>
-          <strong>数据使用：</strong>我们使用您的信息提供个性化的塔罗牌阅读服务。我们不会出售或向第三方分享您的个人信息用于营销目的。<br/><br/>
-          <strong>支付处理：</strong>所有支付通过 PayFast 或华为应用内支付处理。Tessera Lumen 不存储、处理或访问您的银行卡详细信息。<br/><br/>
-          <strong>数据存储：</strong>您的数据安全地存储在 Supabase（云数据库）中，并受行业标准加密保护。<br/><br/>
-          <strong>您的权利：</strong>您可以随时通过联系 holistic@963.co.za 请求删除您的数据。<br/><br/>
-          <strong>同意：</strong>使用本应用即表示您同意本隐私政策。
-        </P>
-      </Section>
-
-      <Section title="Versi Bahasa Melayu (Malay)">
-        <P style={{ fontStyle: "normal" }}>
-          <strong>Nama Aplikasi:</strong> Tessera Lumen<br/>
-          <strong>Pembangun:</strong> Sylvana Anne Ellis<br/>
-          <strong>Hubungi:</strong> holistic@963.co.za<br/><br/>
-          Dasar privasi ini terpakai kepada aplikasi mudah alih Tessera Lumen dan aplikasi web (app.963.co.za), yang dibangunkan dan dikendalikan oleh Sylvana Anne Ellis.<br/><br/>
-          <strong>Lokasi Pemprosesan Data:</strong> Data pengguna diproses di wilayah <strong>Singapura</strong> melalui infrastruktur Huawei AppGallery Connect.<br/><br/>
-          <strong>Maklumat yang Kami Kumpul:</strong> Nama, alamat e-mel, tarikh lahir (pilihan). Maklumat ini hanya digunakan untuk pemperibadian pengalaman bacaan anda.<br/><br/>
-          <strong>Penggunaan Data:</strong> Kami menggunakan maklumat anda untuk menyediakan perkhidmatan bacaan tarot yang diperibadikan. Kami tidak menjual atau berkongsi maklumat peribadi anda kepada pihak ketiga untuk tujuan pemasaran.<br/><br/>
-          <strong>Pemprosesan Pembayaran:</strong> Semua pembayaran diproses melalui PayFast atau Huawei IAP. Tessera Lumen tidak menyimpan, memproses atau mempunyai akses kepada butiran kad bank anda.<br/><br/>
-          <strong>Penyimpanan Data:</strong> Data anda disimpan dengan selamat di Supabase (pangkalan data awan) dan dilindungi oleh penyulitan standard industri.<br/><br/>
-          <strong>Hak Anda:</strong> Anda boleh meminta pemadaman data anda pada bila-bila masa dengan menghubungi holistic@963.co.za.<br/><br/>
-          <strong>Persetujuan:</strong> Menggunakan aplikasi ini bermakna anda bersetuju dengan dasar privasi ini.
-        </P>
-      </Section>
-
-      <Section title="தமிழ் பதிப்பு (Tamil)">
-        <P style={{ fontStyle: "normal" }}>
-          <strong>செயலி பெயர்:</strong> Tessera Lumen<br/>
-          <strong>டெவலப்பர்:</strong> Sylvana Anne Ellis<br/>
-          <strong>தொடர்புக்கு:</strong> holistic@963.co.za<br/><br/>
-          இந்த தனியுரிமைக் கொள்கை Tessera Lumen மொபைல் செயலி மற்றும் வலைச் செயலிக்கு (app.963.co.za) பொருந்தும்.<br/><br/>
-          <strong>தரவு செயலாக்க இடம்:</strong> மொபைல் செயலிக்கான பயனர் தரவு <strong>சிங்கப்பூர்</strong> பிராந்தியத்தில் ஹுவாய் AppGallery Connect உள்கட்டமைப்பு மூலம் செயலாக்கப்படுகிறது.<br/><br/>
-          <strong>நாங்கள் சேகரிக்கும் தகவல்கள்:</strong> பெயர், மின்னஞ்சல் முகவரி, பிறந்த தேதி (விரும்பினால்). இந்தத் தகவல்கள் உங்கள் வாசிப்பு அனுபவத்தைத் தனிப்பயனாக்க மட்டுமே பயன்படுத்தப்படுகின்றன.<br/><br/>
-          <strong>தரவுப் பயன்பாடு:</strong> தனிப்பயனாக்கப்பட்ட டாரட் வாசிப்பு சேவைகளை வழங்க உங்கள் தகவலைப் பயன்படுத்துகிறோம்.<br/><br/>
-          <strong>கட்டணச் செயலாக்கம்:</strong> அனைத்து கட்டணங்களும் PayFast அல்லது Huawei IAP மூலம் செயலாக்கப்படுகின்றன. Tessera Lumen உங்கள் வங்கி அட்டை விவரங்களைச் சேமிக்கவோ செய்யாது.<br/><br/>
-          <strong>தரவு சேமிப்பு:</strong> உங்கள் தரவு Supabase இல் பாதுகாப்பாகச் சேமிக்கப்பட்டு, தொழில்துறை தர குறியாக்கத்தால் பாதுகாக்கப்படுகிறது.<br/><br/>
-          <strong>சம்மதம்:</strong> இந்தச் செயலியைப் பயன்படுத்துவதன் மூலம் இந்தத் தனியுரிமைக் கொள்கையை ஏற்கிறீர்கள்.
-        </P>
-      </Section>
-
     </LegalPage>
+    </>
   );
 }
+

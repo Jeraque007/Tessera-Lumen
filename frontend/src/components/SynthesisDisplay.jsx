@@ -1,4 +1,24 @@
-import { motion } from "framer-motion";
+﻿import { motion } from "framer-motion";
+
+
+function stripMarkdown(text) {
+  if (!text) return '';
+  return text
+    .replace(/#{1,6}\s*/g, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    .replace(/~~([^~]+)~~/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^[-*]\s+/gm, '')
+    .replace(/^\d+\.\s+/gm, '')
+    .replace(/^---+$/gm, '')
+    .replace(/^===+$/gm, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 /**
  * SynthesisDisplay - Shows the AI-generated personalized reading synthesis
@@ -46,7 +66,7 @@ export default function SynthesisDisplay({ synthesis, isLoading }) {
             style={{ boxShadow: "inset 0 0 30px rgba(212,175,55,0.03)" }}>
             <p className="font-cormorant text-base sm:text-lg leading-relaxed text-[#e8dcc8]/90"
               style={{ whiteSpace: "pre-line" }}>
-              {synthesis.length > 2000 ? synthesis.slice(0, 2000) + "\u2026" : synthesis}
+              {stripMarkdown(synthesis.length > 2000 ? synthesis.slice(0, 2000) : synthesis)}
             </p>
           </div>
 

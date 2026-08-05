@@ -17,7 +17,7 @@ export async function fetchWithRetry(url, options, retries = 2, timeoutMs = 1500
 }
 
 export async function verifyWithBackend(purchase, user) {
-  const url = apiUrl("/api/huawei/verify");
+  const url = apiUrl("/api/payment/huawei/verify");
   try {
     const res = await fetchWithRetry(url, {
       method: "POST",
@@ -30,7 +30,8 @@ export async function verifyWithBackend(purchase, user) {
       })
     });
     if (!res.ok) {
-      return { verified: false, reason: "HTTP " + res.status };
+      const errorData = await res.json().catch(() => ({}));
+      return { verified: false, reason: errorData.error || "HTTP " + res.status };
     }
     return { verified: true };
   } catch (err) {

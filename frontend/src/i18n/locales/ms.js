@@ -1,4 +1,4 @@
-export default {
+﻿export default {
   appName: "Tessera Lumen",
   sacredSpace: "Ruang Suci",
   returnHome: "Kembali ke Laman Utama",
@@ -32,12 +32,12 @@ export default {
   packagesSub: "Langganan",
   packagesBtn: "Teruskan",
   packages: [
-    { id:1, type:"one-time", name:"Wawasan Segera",          price:"$3.99",     desc:"Satu kad untuk kejelasan segera",          cards:1 },
+    { id:1, type:"one-time", name:"Wawasan Segera",          price:"$1.99",     desc:"Satu kad untuk kejelasan segera",          cards:1 },
     { id:2, type:"one-time", name:"Masa Lalu, Kini, Depan",  price:"$9.99",     desc:"Tiga kad mendedahkan perjalanan anda",     cards:3 },
-    { id:3, type:"one-time", name:"Selaman Dalam",           price:"$19.99",    desc:"Lima kad untuk wawasan mendalam",          cards:5 },
+    { id:3, type:"one-time", name:"Selaman Dalam",           price:"$14.99",    desc:"Lima kad untuk wawasan mendalam",          cards:5 },
     { id:4, type:"sub",      name:"10 Bacaan / Bulan",       price:"$9.99/mo",  desc:"1 bacaan kad sehari",                 cards:1 },
-    { id:5, type:"sub",      name:"20 Bacaan / Bulan",       price:"$17.99/mo", desc:"2 bacaan kad sehari",                         cards: 1 },
-    { id:6, type:"sub",      name:"30 Bacaan / Bulan",       price:"$24.99/mo", desc:"3 bacaan kad sehari",              cards: 1 },
+    { id:5, type:"sub",      name:"20 Bacaan / Bulan",       price:"$17.99/mo", desc:"2 bacaan kad sehari",                         cards: 2 },
+    { id:6, type:"sub",      name:"30 Bacaan / Bulan",       price:"$24.99/mo", desc:"3 bacaan kad sehari",              cards: 3 },
   ],
   paymentTag: "Pembayaran Selamat",
   paymentTitle: "Pembayaran",

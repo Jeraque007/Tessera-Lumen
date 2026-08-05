@@ -10,17 +10,25 @@ export function UserProvider({ children }) {
     } catch (e) { return { name: "", email: "", dob: "" }; }
   });
 
+  const [uploadedImage, setUploadedImage] = useState(() => {
+    try { return localStorage.getItem("tl_uploaded_image") || null; } catch (e) { return null; }
+  });
+
   useEffect(() => {
     localStorage.setItem("tl_user", JSON.stringify(user));
-  }, [user]);
+    if (uploadedImage) localStorage.setItem("tl_uploaded_image", uploadedImage);
+    else localStorage.removeItem("tl_uploaded_image");
+  }, [user, uploadedImage]);
 
   const logout = () => {
     setUser({ name: "", email: "", dob: "" });
+    setUploadedImage(null);
     localStorage.removeItem("tl_user");
+    localStorage.removeItem("tl_uploaded_image");
   };
 
   return (
-    <UserContext.Provider value={{ user, setUser, logout }}>
+    <UserContext.Provider value={{ user, setUser, uploadedImage, setUploadedImage, logout }}>
       {children}
     </UserContext.Provider>
   );

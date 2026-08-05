@@ -51,10 +51,10 @@ if exist "%FINAL_APK%" (
     echo Location: %FINAL_APK%
     echo.
     echo --- SHIP LOG ---
-    echo Version: 1.0.24 (Code 124)
-    echo HMS Status: Enabled (Primary)
-    echo PayFast Status: Fallback (Disabled for Android Native)
-    echo Privacy: Sylvana Anne Ellis (Aligned)
+    echo Version: 1.0.24 ^(Code 124^)
+    echo HMS Status: Enabled ^(Primary^)
+    echo PayFast Status: Fallback ^(Disabled for Android Native^)
+    echo Privacy: Sylvana Anne Ellis ^(Aligned^)
     echo -----------------
 ) else (
     echo.

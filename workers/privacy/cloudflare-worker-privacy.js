@@ -1,14 +1,15 @@
 export default {
   async fetch(request) {
     const url = new URL(request.url);
-    
-    if (url.pathname === "/privacy" || url.pathname === "/privacy/") {
-      return new Response(PRIVACY_HTML, {
-        headers: { "Content-Type": "text/html; charset=utf-8" }
-      });
-    }
-    
-    return new Response("Tessera Lumen - Singapore Gateway", { status: 200 });
+
+    // Serve Privacy Policy on ALL paths (Root, /privacy, etc.)
+    // This prevents "Blank" screen rejections if Huawei reviewers click the domain root.
+    return new Response(PRIVACY_HTML, {
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Access-Control-Allow-Origin": "*"
+      }
+    });
   }
 };
 

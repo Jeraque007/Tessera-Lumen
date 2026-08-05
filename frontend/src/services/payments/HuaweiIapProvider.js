@@ -4,13 +4,32 @@ import {
   consumePurchase,
   checkIapEnv,
   restorePurchases,
-  PRODUCT_MAP
+  PRODUCT_MAP,
+  getProductInfo,
+  productIds
 } from "../../utils/huaweiIap.js";
 import { verifyWithBackend, queuePendingVerification } from "../../utils/paymentUtils.js";
 
 export class HuaweiIapProvider extends PaymentProvider {
   async isAvailable() {
     return await checkIapEnv(false);
+  }
+
+  async getPrices() {
+    try {
+      const [conRes, subRes] = await Promise.all([
+        getProductInfo(productIds.consumables, 0),
+        getProductInfo(productIds.subscriptions, 2)
+      ]);
+      const priceMap = {};
+      [...conRes, ...subRes].forEach(p => {
+        priceMap[p.productId] = p.price;
+      });
+      return priceMap;
+    } catch (e) {
+      console.warn("[HMSProvider] Failed to fetch prices:", e);
+      return {};
+    }
   }
 
   async purchase(selectedPackage, user, callbacks) {

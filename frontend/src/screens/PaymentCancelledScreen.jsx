@@ -1,3 +1,4 @@
+import SEO from "../components/SEO.jsx";
 import ScreenWrapper from "../components/ScreenWrapper.jsx";
 import GoldButton from "../components/GoldButton.jsx";
 
@@ -8,6 +9,7 @@ export default function PaymentCancelledScreen() {
 
   return (
     <ScreenWrapper>
+      <SEO title="Payment Cancelled" description="Your payment was cancelled. You can return to Tessera Lumen and try again when ready." path="/payment-cancelled" noindex={true} />
       <div className="flex flex-col items-center justify-center min-h-screen px-6 text-center">
         <div className="glass-gold rounded-2xl p-10 max-w-md w-full animate-fade-in-up">
           <div style={{ fontSize: "3rem", marginBottom: "16px" }}>&#10007;</div>

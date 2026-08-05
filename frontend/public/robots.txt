@@ -1,4 +1,10 @@
 User-agent: *
 Allow: /
+Disallow: /payment
+Disallow: /payment-success
+Disallow: /payment-cancelled
+Disallow: /details
+Disallow: /intention
+Disallow: /reveal
 
-Sitemap: https://sophia-tarot-app.vercel.app/sitemap.xml
+Sitemap: https://app.963.co.za/sitemap.xml

@@ -8,6 +8,11 @@ export const getConfig = (env) => ({
     clientId: env.HUAWEI_CLIENT_ID || "1707533721919297472",
     clientSecret: env.HUAWEI_CLIENT_SECRET,
 
+    // JWT Auth (from AGC Key settings)
+    issuerId: env.HUAWEI_ISSUER_ID,
+    keyId: env.HUAWEI_KEY_ID,
+    privateKey: env.HUAWEI_PRIVATE_KEY,
+
     // ROOM 3: App Information (Payment & Identity)
     appId: env.HUAWEI_APP_ID || "114450405",
     publicKey: env.HUAWEI_IAP_PUBLIC_KEY,
@@ -15,7 +20,7 @@ export const getConfig = (env) => ({
     // ROOM 1: Developer Information
     developerId: env.HMS_DEVELOPER_ID || "70027000000111176",
 
-    region: env.HMS_REGION || 'dra',
+    region: env.HMS_REGION || 'SG',
   },
   supabase: {
     url: env.SUPABASE_URL,

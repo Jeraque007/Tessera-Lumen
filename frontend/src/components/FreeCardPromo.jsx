@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import { useApp } from "../context/AppContext.jsx";
 import { CARDS } from "../data/cards.js";
@@ -18,6 +18,7 @@ const SHARE_LINKS = {
 };
 
 const SHARE_TEXT = "I just received a free tarot reading from Tessera Lumen! Try it yourself:";
+const CONTACT_EMAIL = "holistic@963.co.za";
 
 // Seeded shuffle
 const getSeededCards = () => {
@@ -41,6 +42,7 @@ export default function FreeCardPromo() {
   const { user } = useApp();
   const { i18n } = useTranslation();
   const [remaining, setRemaining] = useState(null);
+  const [quotaState, setQuotaState] = useState("active");
   const [promoEnded, setPromoEnded] = useState(false);
   const [phase, setPhase] = useState("idle"); // idle, fan, revealing, revealed
   const [revealedReading, setRevealedReading] = useState(null);
@@ -78,6 +80,7 @@ export default function FreeCardPromo() {
       const data = await res.json();
       if (data.remaining <= 0) setPromoEnded(true);
       setRemaining(data.remaining);
+      setQuotaState(data.state || "active");
     } catch (e) {
       console.warn("[FreeCard] Status fetch failed:", e);
       setRemaining(100);
@@ -344,13 +347,28 @@ export default function FreeCardPromo() {
               </div>
 
               {remaining !== null && (
-                <div className="flex justify-center mb-4">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#D4AF37]/40" style={{ background: "rgba(212,175,55,0.1)" }}>
+                <div className="flex flex-col items-center justify-center mb-4 gap-2">
+                  <div
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full border"
+                    style={{
+                      background: quotaState === "warning" ? "rgba(212,175,55,0.16)" : "rgba(212,175,55,0.1)",
+                      borderColor: quotaState === "warning" ? "rgba(240,208,96,0.75)" : "rgba(212,175,55,0.4)"
+                    }}
+                  >
                     <div className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
                     <span className="font-cinzel text-[11px] tracking-wider text-[#f0d060]">
-                      {remaining} of 100 remaining
+                      {quotaState === "warning" ? `Only ${remaining} of 100 free cards remaining` : `${remaining} of 100 remaining`}
                     </span>
                   </div>
+
+                  {quotaState === "warning" && (
+                    <a
+                      href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Tessera Lumen free-card quota warning")}&body=${encodeURIComponent(`The free-card quota is running low.\n\nCurrent remaining: ${remaining}\nTotal target: 100\nPlease top up the pool or disable the free-card offer before it reaches zero.`)}`}
+                      className="font-cinzel text-[10px] tracking-[0.2em] text-[#D4AF37] uppercase underline decoration-[#D4AF37]/60"
+                    >
+                      Email admin to top up
+                    </a>
+                  )}
                 </div>
               )}
 

@@ -2,8 +2,8 @@
 frontend/android/
 **/android/**
 
-# Exclude backend
-backend/
+# DO NOT EXCLUDE BACKEND - The Vercel Brain (api/index.js) depends on this folder.
+# backend/
 
 # Exclude build artifacts and caches
 **/node_modules/**

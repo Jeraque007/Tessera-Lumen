@@ -1,7 +1,8 @@
-{
+﻿{
   "name": "Tessera Lumen",
   "short_name": "Tessera Lumen",
   "description": "Oracle of the Soul - Sacred Tarot Readings",
+  "lang": "en",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#060810",

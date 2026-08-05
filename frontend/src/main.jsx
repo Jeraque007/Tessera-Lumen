@@ -1,8 +1,11 @@
-import { StrictMode, Component } from "react";
+import { Component, useState, useEffect, StrictMode } from "react";
+import { HelmetProvider } from "react-helmet-async";
 import { createRoot } from "react-dom/client";
+import { SplashScreen as CapSplashScreen } from "@capacitor/splash-screen";
 import "./i18n/index.js";
 import "./index.css";
 import App from "./App.jsx";
+import SplashScreen from "./components/SplashScreen.jsx";
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -29,10 +32,43 @@ class ErrorBoundary extends Component {
   }
 }
 
-createRoot(document.getElementById("root")).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </StrictMode>
-);
+function Root() {
+  const [showSplash, setShowSplash] = useState(() => {
+    // HMS COMPLIANCE & UX:
+    // Do NOT show the splash screen if we are returning from a payment gateway.
+    // The user expects to see their result instantly, not the boot logo again.
+    const params = new URLSearchParams(window.location.search);
+    const isPaymentReturn = params.has("paid") || params.has("cancelled") ||
+                            params.has("deeper_paid") || params.has("deeper_cancelled");
+    return !isPaymentReturn;
+  });
+
+  useEffect(() => {
+    if (!showSplash) {
+      // HMS COMPLIANCE & UX:
+      // Once the JS-based splash is gone, ensure the native one is too.
+      // This is a "double tap" to prevent hangs if one system thinks it's hidden but isn't.
+      CapSplashScreen.hide().catch(() => {});
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [showSplash]);
+
+  return (
+    <StrictMode>
+      <HelmetProvider>
+        <ErrorBoundary>
+        {showSplash && <SplashScreen />}
+        <App />
+        </ErrorBoundary>
+      </HelmetProvider>
+    </StrictMode>
+  );
+}
+
+createRoot(document.getElementById("root")).render(<Root />);
+

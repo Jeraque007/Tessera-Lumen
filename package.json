@@ -1,12 +1,20 @@
 {
-  "name": "sophia-tarot-app-api",
-  "version": "1.0.0",
+  "name": "sophia-tarot-app",
+  "version": "1.0.22",
   "private": true,
-  "engines": {
-    "node": "20.x"
+  "type": "module",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.46.0",
-    "crypto": "^1.0.1"
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.0",
+    "express-rate-limit": "^8.6.0",
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

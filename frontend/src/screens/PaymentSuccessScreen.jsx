@@ -1,3 +1,4 @@
+import SEO from "../components/SEO.jsx";
 import ScreenWrapper from "../components/ScreenWrapper.jsx";
 import GoldButton from "../components/GoldButton.jsx";
 
@@ -8,6 +9,7 @@ export default function PaymentSuccessScreen() {
 
   return (
     <ScreenWrapper>
+      <SEO title="Payment Successful" description="Your payment was successful. Your Tessera Lumen tarot reading is now unlocked." path="/payment-success" noindex={true} />
       <div className="flex flex-col items-center justify-center min-h-screen px-6 text-center">
         <div className="glass-gold rounded-2xl p-10 max-w-md w-full animate-fade-in-up">
           <div style={{ fontSize: "3rem", marginBottom: "16px" }}>&#10003;</div>

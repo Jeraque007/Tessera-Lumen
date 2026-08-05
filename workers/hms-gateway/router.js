@@ -11,7 +11,26 @@ export async function handleRequest(request, env, ctx) {
   const url = new URL(request.url);
   const path = url.pathname;
   const config = getConfig(env);
-  const endpoints = getHmsEndpoints(config.huawei.region);
+
+  // ARCHITECTURAL ENHANCEMENT: Multi-Region Smart Routing
+  // Automatically select the closest Huawei IAP data center based on IP geolocation.
+  const country = request.headers.get('cf-ipcountry') || 'US';
+  let smartRegion = config.huawei.region; // Default (usually SG/dra)
+
+  const regionMap = {
+    'CN': 'drcn', // China
+    'RU': 'drru', // Russia
+    // Europe list (DRE)
+    'GB': 'dre', 'DE': 'dre', 'FR': 'dre', 'IT': 'dre', 'ES': 'dre', 'NL': 'dre', 'PL': 'dre',
+    // Asia/Other default to DRA (Singapore)
+  };
+
+  if (regionMap[country]) {
+    smartRegion = regionMap[country];
+    logger.info(`[Router] Smart-Routing seeker from ${country} to ${smartRegion}`);
+  }
+
+  const endpoints = getHmsEndpoints(smartRegion);
 
   // Handle CORS preflight
   if (request.method === "OPTIONS") {
@@ -19,9 +38,10 @@ export async function handleRequest(request, env, ctx) {
   }
 
   // Routing
-  if (path === "/api/test" || path === "/test") {
+  if (path === "/api/test" || path === "/test" || path === "/api/health") {
     return jsonResponse({
       status: "Gateway Online",
+      bridge: "Connected",
       environment: {
         hasClientId: !!config.huawei.clientId,
         hasClientSecret: !!config.huawei.clientSecret,
@@ -36,7 +56,55 @@ export async function handleRequest(request, env, ctx) {
     });
   }
 
-  if (path === "/" || path === "/api/huawei/verify") {
+  // Fallback for languages to keep UI alive if backend is offline
+  if (path === "/api/languages") {
+    return jsonResponse([
+      { code: "en", name: "English" },
+      { code: "es", name: "Español" },
+      { code: "zh", name: "中文" },
+      { code: "hi", name: "हिन्दी" },
+      { code: "ms", name: "Bahasa Melayu" },
+      { code: "ta", name: "தமிழ்" }
+    ]);
+  }
+
+  // UNIVERSAL CURRENCY GATEWAY - Break the loop and provide instant FX
+  if (path === "/api/fx/rate" || path === "/api/rate") {
+    try {
+      const country = request.headers.get('cf-ipcountry') || 'US';
+      const countryToCurrency = {
+        'ZA': 'ZAR', 'GB': 'GBP', 'DE': 'EUR', 'FR': 'EUR', 'IT': 'EUR', 'ES': 'EUR',
+        'IN': 'INR', 'AE': 'AED', 'SA': 'SAR', 'BH': 'BHD', 'AU': 'AUD', 'NZ': 'NZD',
+        'CA': 'CAD', 'SG': 'SGD', 'CN': 'CNY', 'JP': 'JPY', 'BR': 'BRL', 'MX': 'MXN'
+      };
+      const currencyCode = countryToCurrency[country] || 'USD';
+      const currencySymbols = {
+        'ZAR': 'R', 'GBP': '£', 'EUR': '€', 'INR': '₹', 'AED': 'د.إ', 'SAR': '﷼',
+        'BHD': 'BD', 'AUD': 'A$', 'NZD': 'NZ$', 'CAD': 'C$', 'SGD': 'S$', 'CNY': '¥',
+        'JPY': '¥', 'BRL': 'R$', 'MXN': '$', 'USD': '$'
+      };
+
+      const fxRes = await fetch("https://api.exchangerate-api.com/v4/latest/USD", {
+        signal: AbortSignal.timeout(3000)
+      });
+      const data = await fxRes.json();
+      const userRate = data.rates[currencyCode] || 1;
+      const zarRate = data.rates['ZAR'] || 19.10;
+
+      return jsonResponse({
+        rate: userRate,
+        symbol: currencySymbols[currencyCode] || '$',
+        code: currencyCode,
+        zarRate: zarRate,
+        country: country,
+        source: "Gateway"
+      });
+    } catch (e) {
+      return jsonResponse({ rate: 1, symbol: '$', code: 'USD', zarRate: 19.10, error: e.message });
+    }
+  }
+
+  if (path === "/" || path === "/api/huawei/verify" || path === "/api/callback") {
     // Check for PayFast return parameters (paid=1, cancelled=1, etc.)
     const hasPayFastParams = url.searchParams.has("paid") ||
                              url.searchParams.has("cancelled") ||
@@ -86,10 +154,34 @@ export async function handleRequest(request, env, ctx) {
         note: "Use POST to verify purchases"
       });
     }
+
+    // Handle Huawei Subscription/Order Callbacks (Notifications)
+    if (path === "/api/callback") {
+      // Huawei sends notifications as POST with a JSON body
+      try {
+        const body = await request.json();
+        logger.info(`[Callback] Received notification: ${JSON.stringify(body).substring(0, 200)}...`);
+
+        // Acknowledge receipt to Huawei (Critical: They require error_code: 0)
+        return jsonResponse({
+          error_code: 0,
+          error_msg: "OK"
+        });
+      } catch (e) {
+        // Fallback for non-JSON or malformed hits
+        return jsonResponse({ error_code: 0, error_msg: "OK (Acknowledged)" });
+      }
+    }
+
     return handleHuaweiVerify(request, env, ctx);
   }
 
   // Proxy logic for all other traffic
+  // Check for WebSocket upgrade
+  if (request.headers.get("Upgrade") === "websocket") {
+    return fetch(config.backendUrl + path + url.search, request);
+  }
+
   const proxyOptions = {
     method: request.method,
     headers: new Headers(request.headers),

@@ -7,9 +7,9 @@ import { apiUrl } from "./apiBase.js";
 
 // USD price mapping for each package
 export const PACKAGE_PRICES_USD = {
-  1: "3.99",
+  1: "1.99",
   2: "9.99",
-  3: "19.99",
+  3: "14.99",
   4: "9.99",
   5: "17.99",
   6: "24.99",
@@ -40,18 +40,23 @@ export async function initiatePayFastPayment(pkg, user) {
     }
 
     const { paymentUrl, fields } = await res.json();
-    console.log("[PayFast] Received data, building relay URL...");
+    console.log("[PayFast] Received data, initiating direct POST...");
 
-    // Build relay URL
-    const query = new URLSearchParams({ url: paymentUrl, ...fields }).toString();
-    const relayUrl = `${apiUrl("/api/payfast/relay")}?${query}`;
+    // DIRECT POST FORM (Eliminates the 502/Relay Latency)
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = paymentUrl;
 
-    if (isNative) {
-      const { Browser } = await import("@capacitor/browser");
-      await Browser.open({ url: relayUrl });
-    } else {
-      window.location.href = relayUrl;
-    }
+    Object.keys(fields).forEach(key => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = fields[key];
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
   } catch (e) {
     console.error("[PayFast] Error during initiation:", e.message);
     throw e;
@@ -83,15 +88,20 @@ export async function initiateDeeperPayment(user) {
   }
   const { paymentUrl, fields } = await res.json();
 
-  const query = new URLSearchParams({ url: paymentUrl, ...fields }).toString();
-  const relayUrl = `${apiUrl("/api/payfast/relay")}?${query}`;
+  console.log("[Payment:Deeper] Initiating direct POST");
 
-  console.log("[Payment:Deeper] Initiating redirect");
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = paymentUrl;
 
-  if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
-    const { Browser } = await import("@capacitor/browser");
-    await Browser.open({ url: relayUrl });
-  } else {
-    window.location.href = relayUrl;
-  }
+  Object.keys(fields).forEach(key => {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = key;
+    input.value = fields[key];
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
 }

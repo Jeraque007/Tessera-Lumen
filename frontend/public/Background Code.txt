@@ -1,0 +1,374 @@
+1. The Main Layout (activity_main.xml)
+
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Living Cosmic Background -->
+    <com.yourpackage.LivingCosmicView
+        android:id="@+id/cosmicView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Semi-transparent overlay for text readability -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/gradient_overlay" />
+
+    <!-- Your UI Content -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CHOOSE YOUR READING"
+            android:textColor="#FFFFFF"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-light"
+            android:layout_marginTop="40dp"
+            android:shadowColor="#000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="8" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="40dp" />
+
+        <!-- Card 1: Quick Insight -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="#66000000"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="8dp"
+            app:cardPreventCornerOverlap="false">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="QUICK INSIGHT"
+                    android:textColor="#FFD700"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="A single card for immediate clarity"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:layout_marginTop="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="$3.99"
+                    android:textColor="#FFFFFF"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="8dp" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Add more cards similarly... -->
+
+    </LinearLayout>
+</FrameLayout>
+
+2. The Living Cosmic View (LivingCosmicView.kt)
+
+package com.yourpackage
+
+import android.animation.ValueAnimator
+import android.content.Context
+import android.graphics.*
+import android.util.AttributeSet
+import android.view.View
+import android.view.animation.LinearInterpolator
+import kotlin.math.sin
+import kotlin.random.Random
+
+class LivingCosmicView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
+
+    // Star data class with movement properties
+    private data class Star(
+        var x: Float,
+        var y: Float,
+        val baseX: Float,
+        val baseY: Float,
+        val size: Float,
+        var alpha: Float,
+        val speed: Float,
+        val phase: Float,
+        val driftAngle: Float,
+        val driftSpeed: Float
+    )
+
+    // Nebula data for drifting clouds
+    private data class NebulaBlob(
+        var x: Float,
+        var y: Float,
+        val radius: Float,
+        val color: Int,
+        var alpha: Float,
+        val speed: Float,
+        val phase: Float
+    )
+
+    private val stars = mutableListOf<Star>()
+    private val nebulaBlobs = mutableListOf<NebulaBlob>()
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private var animator: ValueAnimator? = null
+    private var time = 0f
+
+    // Performance optimization: cache the bitmap
+    private var cachedBitmap: Bitmap? = null
+    private var lastWidth = 0
+    private var lastHeight = 0
+
+    init {
+        // Enable hardware acceleration for GPU rendering
+        setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        generateCosmicElements()
+        startAnimation()
+    }
+
+    private fun generateCosmicElements() {
+        // Generate stars with natural distribution
+        val starCount = 200 // Balanced for performance
+        
+        repeat(starCount) {
+            val x = Random.nextFloat() * width
+            val y = Random.nextFloat() * height
+            // Stars cluster slightly toward center
+            val size = 1.5f + Random.nextFloat() * 4f
+            val alpha = 0.3f + Random.nextFloat() * 0.7f
+            val speed = 0.3f + Random.nextFloat() * 2f
+            val phase = Random.nextFloat() * 2f * Math.PI.toFloat()
+            val driftAngle = Random.nextFloat() * 2f * Math.PI.toFloat()
+            val driftSpeed = 0.01f + Random.nextFloat() * 0.03f
+            
+            stars.add(Star(x, y, x, y, size, alpha, speed, phase, driftAngle, driftSpeed))
+        }
+
+        // Generate drifting nebula clouds
+        val nebulaColors = listOf(
+            Color.argb(80, 120, 80, 200), // Purple
+            Color.argb(60, 200, 100, 150), // Pink
+            Color.argb(50, 80, 150, 220), // Blue
+            Color.argb(40, 200, 150, 100)  // Warm
+        )
+
+        repeat(8) {
+            val x = Random.nextFloat() * width
+            val y = Random.nextFloat() * height
+            val radius = 80f + Random.nextFloat() * 200f
+            val color = nebulaColors.random()
+            val alpha = 0.2f + Random.nextFloat() * 0.4f
+            val speed = 0.05f + Random.nextFloat() * 0.15f
+            val phase = Random.nextFloat() * 2f * Math.PI.toFloat()
+            
+            nebulaBlobs.add(NebulaBlob(x, y, radius, color, alpha, speed, phase))
+        }
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        // Recreate elements for new screen size
+        if (w > 0 && h > 0 && (w != lastWidth || h != lastHeight)) {
+            lastWidth = w
+            lastHeight = h
+            stars.clear()
+            nebulaBlobs.clear()
+            generateCosmicElements()
+            cachedBitmap?.recycle()
+            cachedBitmap = null
+        }
+    }
+
+    private fun startAnimation() {
+        animator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 16 // ~60fps
+            repeatCount = ValueAnimator.INFINITE
+            interpolator = LinearInterpolator()
+            addUpdateListener {
+                time += 0.016f // ~60fps time step
+                updateCosmicElements()
+                invalidate()
+            }
+            start()
+        }
+    }
+
+    private fun updateCosmicElements() {
+        val screenWidth = width.toFloat()
+        val screenHeight = height.toFloat()
+
+        // Update stars
+        stars.forEach { star ->
+            // Twinkle using sine wave
+            star.alpha = (sin(time * star.speed + star.phase) + 1f) / 2f * 0.8f + 0.2f
+
+            // Gentle drift in figure-8 pattern
+            val driftX = sin(time * star.driftSpeed + star.driftAngle) * 15f
+            val driftY = cos(time * star.driftSpeed * 1.3f + star.driftAngle) * 12f
+            
+            star.x = star.baseX + driftX
+            star.y = star.baseY + driftY
+
+            // Wrap around edges with smooth transition
+            if (star.x < -20f) star.x = screenWidth + 20f
+            if (star.x > screenWidth + 20f) star.x = -20f
+            if (star.y < -20f) star.y = screenHeight + 20f
+            if (star.y > screenHeight + 20f) star.y = -20f
+        }
+
+        // Update nebula blobs with slow drift
+        nebulaBlobs.forEach { blob ->
+            blob.x += sin(time * blob.speed + blob.phase) * 0.3f
+            blob.y += cos(time * blob.speed * 0.7f + blob.phase) * 0.3f
+            blob.alpha = (sin(time * blob.speed * 0.5f + blob.phase) + 1f) / 2f * 0.3f + 0.15f
+
+            // Wrap around
+            if (blob.x < -blob.radius) blob.x = screenWidth + blob.radius
+            if (blob.x > screenWidth + blob.radius) blob.x = -blob.radius
+            if (blob.y < -blob.radius) blob.y = screenHeight + blob.radius
+            if (blob.y > screenHeight + blob.radius) blob.y = -blob.radius
+        }
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+
+        // Draw background gradient matching your cosmic image
+        val gradient = RadialGradient(
+            width / 2f, height / 2f, width * 0.8f,
+            intArrayOf(
+                Color.argb(255, 20, 8, 45), // Deep purple center
+                Color.argb(255, 10, 5, 30), // Darker edge
+                Color.argb(255, 5, 2, 20)   // Near black
+            ),
+            floatArrayOf(0f, 0.6f, 1f),
+            Shader.TileMode.CLAMP
+        )
+        paint.shader = gradient
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+        paint.shader = null
+
+        // Draw nebula blobs with soft glow
+        nebulaBlobs.forEach { blob ->
+            paint.reset()
+            paint.alpha = (blob.alpha * 255).toInt()
+            paint.style = Paint.Style.FILL
+            paint.maskFilter = BlurMaskFilter(blob.radius * 0.5f, BlurMaskFilter.Blur.NORMAL)
+            paint.color = blob.color
+            
+            // Draw multiple layers for richer effect
+            for (i in 0..2) {
+                val radius = blob.radius * (1f - i * 0.2f)
+                canvas.drawCircle(blob.x, blob.y, radius, paint)
+            }
+            paint.maskFilter = null
+        }
+
+        // Draw stars with glow
+        stars.forEach { star ->
+            paint.reset()
+            paint.style = Paint.Style.FILL
+            paint.color = Color.WHITE
+            
+            // Alpha for brightness
+            val alphaInt = (star.alpha * 255).toInt()
+            paint.alpha = alphaInt
+
+            // Glow effect for larger stars
+            if (star.size > 3f) {
+                paint.maskFilter = BlurMaskFilter(star.size * 0.3f, BlurMaskFilter.Blur.NORMAL)
+                canvas.drawCircle(star.x, star.y, star.size * 0.5f, paint)
+                
+                // Bright center
+                paint.maskFilter = null
+                paint.alpha = (star.alpha * 200).toInt()
+                canvas.drawCircle(star.x, star.y, star.size * 0.3f, paint)
+            } else {
+                // Small stars just get a dot
+                canvas.drawCircle(star.x, star.y, star.size * 0.4f, paint)
+            }
+            
+            // Cross-shaped flare for brightest stars
+            if (star.alpha > 0.8f && star.size > 3f) {
+                paint.maskFilter = null
+                paint.alpha = (star.alpha * 80).toInt()
+                paint.strokeWidth = 0.5f
+                val flareLen = star.size * 2f
+                for (angle in 0..3) {
+                    val rad = angle * Math.PI.toFloat() / 2
+                    canvas.drawLine(
+                        star.x - cos(rad) * flareLen,
+                        star.y - sin(rad) * flareLen,
+                        star.x + cos(rad) * flareLen,
+                        star.y + sin(rad) * flareLen,
+                        paint
+                    )
+                }
+            }
+            paint.maskFilter = null
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        animator?.cancel()
+        cachedBitmap?.recycle()
+        cachedBitmap = null
+    }
+
+    // Pause animation when not visible to save CPU
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        if (visibility == View.VISIBLE) {
+            animator?.resume()
+        } else {
+            animator?.pause()
+        }
+    }
+
+    // Helper function for cos
+    private fun cos(value: Float) = kotlin.math.cos(value.toDouble()).toFloat()
+    private fun sin(value: Float) = kotlin.math.sin(value.toDouble()).toFloat()
+}
+
+3. Gradient Overlay for Readability (res/drawable/gradient_overlay.xml)
+
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:startColor="#00FFFFFF"
+        android:endColor="#40000000"
+        android:angle="270" />
+</shape>
+
+4. Add to Your Gradle Dependencies
+
+dependencies {
+    implementation 'androidx.cardview:cardview:1.0.0'
+    // ... other dependencies
+}
+

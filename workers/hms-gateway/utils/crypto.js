@@ -36,7 +36,57 @@ export function pemToDer(pem) {
     );
   }
 
+  // Also handle Private Key headers
+  const privateHeader = '-----BEGIN PRIVATE KEY-----';
+  const privateFooter = '-----END PRIVATE KEY-----';
+  if (pem.includes(privateHeader)) {
+    base64 = pem.substring(
+      pem.indexOf(privateHeader) + privateHeader.length,
+      pem.indexOf(privateFooter)
+    );
+  }
+
   return base64ToBuffer(base64);
+}
+
+/**
+ * Helper: Sign a JWT using ECDSA (ES256) for Huawei IAP
+ */
+export async function signHmsJwt(payload, privateKeyPem, keyId) {
+  const header = {
+    alg: 'ES256',
+    typ: 'JWT',
+    kid: keyId
+  };
+
+  const encodedHeader = btoa(JSON.stringify(header)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  const encodedPayload = btoa(JSON.stringify(payload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  const dataToSign = `${encodedHeader}.${encodedPayload}`;
+
+  const key = await crypto.subtle.importKey(
+    'pkcs8',
+    pemToDer(privateKeyPem),
+    {
+      name: 'ECDSA',
+      namedCurve: 'P-256',
+    },
+    false,
+    ['sign']
+  );
+
+  const signature = await crypto.subtle.sign(
+    {
+      name: 'ECDSA',
+      hash: { name: 'SHA-256' },
+    },
+    key,
+    new TextEncoder().encode(dataToSign)
+  );
+
+  const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+  return `${dataToSign}.${encodedSignature}`;
 }
 
 /**

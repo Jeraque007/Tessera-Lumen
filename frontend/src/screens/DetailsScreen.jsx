@@ -1,7 +1,8 @@
 import { useState } from "react";
+import SEO from "../components/SEO.jsx";
 import ScreenWrapper from "../components/ScreenWrapper.jsx";
 import GoldButton from "../components/GoldButton.jsx";
-import Divider from "../components/Divider.jsx";
+
 import { useApp } from "../context/AppContext.jsx";
 import { useTranslation } from "react-i18next";
 import { apiUrl } from "../utils/apiBase.js";
@@ -32,13 +33,14 @@ export default function DetailsScreen() {
 
   return (
     <ScreenWrapper>
+      <SEO title="Your Details" description="Enter your details to begin your personalized Tessera Lumen tarot reading experience. Your sacred journey starts here." path="/details" noindex={true} />
       <div className="flex flex-col min-h-screen px-6 py-10">
         <div className="animate-fade-in-up mb-8 text-center">
           <p className="font-cinzel text-[10px] tracking-[0.4em] uppercase mb-3" style={{ color:"#D4AF37" }}>{t("detailsTag")}</p>
           <h2 className="font-cinzel text-2xl font-bold mb-2" style={{ background:"linear-gradient(135deg,#f0d060,#D4AF37,#8a7020)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text" }}>{t("detailsTitle")}</h2>
           <p className="font-cormorant text-base italic" style={{ color:"rgba(240,232,216,0.6)" }}>{t("detailsSub")}</p>
         </div>
-        <Divider />
+        
         <div className="flex flex-col gap-5 animate-fade-in-up delay-200">
           <div>
             <label className="block font-cinzel text-[10px] tracking-[0.22em] uppercase mb-2" style={{ color:"rgba(212,175,55,0.8)" }}>{t("detailsName")}</label>

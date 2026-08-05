@@ -1,10 +1,13 @@
-﻿import LegalPage, { Section, P, Ul, Li } from "./LegalPage.jsx";
+import SEO from "../../components/SEO.jsx";
+import LegalPage, { Section, P, Ul, Li } from "./LegalPage.jsx";
 
 const CONTACT_EMAIL = "holistic@963.co.za";
 
 export default function LicensingScreen({ onBack }) {
   return (
-    <LegalPage title="Licensing & IP Protection" subtitle="Intellectual Property Notice" onBack={onBack}>
+    <>
+      <SEO title="Licensing & IP Protection" description="Tessera Lumen intellectual property and licensing information. All original tarot artwork and content is protected under copyright law." path="/licensing" />
+      <LegalPage title="Licensing & IP Protection" subtitle="Intellectual Property Notice" onBack={onBack}>
 
       <Section title="Copyright Notice">
         <P>&copy; 2026 Tessera Lumen. All rights reserved.</P>
@@ -61,5 +64,8 @@ export default function LicensingScreen({ onBack }) {
       </Section>
 
     </LegalPage>
+    </>
   );
 }
+
+

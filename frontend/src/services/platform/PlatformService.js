@@ -39,4 +39,14 @@ export class PlatformService {
       await stopNativeMusic();
     }
   }
+
+  /**
+   * Signal that the app is fully ready (used to hide splash screens)
+   */
+  static ready() {
+    console.log("[Platform] App Signal: READY");
+    if (window.Capacitor?.isNativePlatform?.()) {
+      // Future: Capacitor.Plugins.SplashScreen.hide()
+    }
+  }
 }

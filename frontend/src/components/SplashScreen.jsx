@@ -46,7 +46,7 @@ export default function SplashScreen() {
         opacity: 0.8,
         textShadow: '0 0 8px rgba(212,175,55,0.3)'
       }}>
-        Divine Disruption
+        Code of Sophia
       </div>
 
       <style>{`

@@ -1,4 +1,5 @@
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
+import { startNativeMusic, stopNativeMusic } from "./huaweiIap.js";
 
 class AmbientAudioManager {
   constructor() {
@@ -47,6 +48,11 @@ class AmbientAudioManager {
   }
 
   startAmbient() {
+    // HMS COMPLIANCE & PERSISTENCE:
+    // We trigger the native foreground service music on user action.
+    // This allows music to continue during PayFast redirections.
+    startNativeMusic();
+
     if (!this.context || this.isPlaying || !this.ambientBuffer) return;
     try {
       if (this.context.state === "suspended") this.context.resume();
@@ -106,6 +112,7 @@ class AmbientAudioManager {
   }
 
   stopAmbient() {
+    stopNativeMusic();
     if (this.ambientSource) {
       try { this.ambientSource.stop(); } catch (e) {}
       this.ambientSource = null;

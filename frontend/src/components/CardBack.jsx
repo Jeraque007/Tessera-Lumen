@@ -1,4 +1,24 @@
-import { motion } from "framer-motion";
+﻿import { motion } from "framer-motion";
+
+// Strip markdown from AI synthesis (Pollinations sometimes returns ** and ## formatting)
+function stripMarkdown(text) {
+  if (!text) return "";
+  return text
+    .replace(/#{1,6}\s*/g, "")
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    .replace(/~~([^~]+)~~/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^[-*]\s+/gm, "")
+    .replace(/^\d+\.\s+/gm, "")
+    .replace(/^---+$/gm, "")
+    .replace(/^===+$/gm, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 /**
  * CardBack - Two-column card back for on-screen display
@@ -7,6 +27,10 @@ import { motion } from "framer-motion";
  * Both columns center-aligned, auto-balanced height
  */
 export default function CardBack({ reading, synthesis, isLoading }) {
+  const savedWarning = typeof window !== "undefined"
+    ? JSON.parse(localStorage.getItem("tl_pollinations_warning") || "null")
+    : null;
+
   return (
     <motion.div
       initial={{ opacity: 0, rotateY: 90 }}
@@ -15,9 +39,9 @@ export default function CardBack({ reading, synthesis, isLoading }) {
       className="w-full max-w-[700px] mx-auto rounded-2xl overflow-hidden border-2 border-[#D4AF37]/30 bg-[#060810]"
       style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.5), inset 0 0 40px rgba(0,0,0,0.3)" }}
     >
-      <div className="grid grid-cols-2 min-h-[400px]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 min-h-[400px]">
         {/* COLUMN 1: Sacred Text */}
-        <div className="p-5 sm:p-6 border-r border-[#D4AF37]/20 flex flex-col justify-center">
+        <div className="p-5 sm:p-6 border-b sm:border-b-0 sm:border-r border-[#D4AF37]/20 flex flex-col justify-center">
           {/* Card Number */}
           <div className="text-center mb-4">
             <span className="text-5xl sm:text-6xl font-bold text-[#f0d060]" style={{ textShadow: "0 0 30px rgba(212,175,55,0.4)" }}>
@@ -88,7 +112,7 @@ export default function CardBack({ reading, synthesis, isLoading }) {
 
               {/* Synthesis text */}
               <p className="font-cormorant text-sm sm:text-base leading-relaxed text-[#dcd0bc] text-center whitespace-pre-line mb-4">
-                {synthesis.length > 2000 ? synthesis.slice(0, 2000) + "\u2026" : synthesis}
+                {stripMarkdown(synthesis.length > 2000 ? synthesis.slice(0, 2000) : synthesis)}
               </p>
 
               {/* Attribution */}
@@ -110,6 +134,14 @@ export default function CardBack({ reading, synthesis, isLoading }) {
               <p className="font-cormorant text-sm italic text-[#D4AF37]">
                 Your personal reading<br/>will appear here
               </p>
+              {savedWarning?.notifyUrl && (
+                <a
+                  href={savedWarning.notifyUrl}
+                  className="mt-3 inline-block font-cinzel text-[9px] tracking-[0.2em] text-[#D4AF37] uppercase underline decoration-[#D4AF37]/60"
+                >
+                  Email admin to top up Pollinations
+                </a>
+              )}
             </div>
           )}
         </div>

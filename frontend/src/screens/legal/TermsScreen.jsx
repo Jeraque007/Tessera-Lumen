@@ -1,10 +1,13 @@
-﻿import LegalPage, { Section, P, Ul, Li } from "./LegalPage.jsx";
+import SEO from "../../components/SEO.jsx";
+import LegalPage, { Section, P, Ul, Li } from "./LegalPage.jsx";
 
 const CONTACT_EMAIL = "holistic@963.co.za";
 
 export default function TermsScreen({ onBack }) {
   return (
-    <LegalPage title="Terms of Use" subtitle="Last updated: January 2026" onBack={onBack}>
+    <>
+      <SEO title="Terms of Use" description="Read the Terms of Use for Tessera Lumen. Understand your rights and responsibilities when using our tarot reading platform." path="/terms" />
+      <LegalPage title="Terms of Use" subtitle="Last updated: January 2026" onBack={onBack}>
 
       <Section title="1. Acceptance of Terms">
         <P>By accessing or using the Tessera Lumen platform, application, or any associated services, you agree to be bound by these Terms of Use. If you do not agree, please discontinue use immediately.</P>
@@ -48,7 +51,7 @@ export default function TermsScreen({ onBack }) {
       </Section>
 
       <Section title="5. Subscription and Payment Terms">
-        <P>Subscription plans are billed monthly in US Dollars ($) via HMS IAP. By subscribing you agree to:</P>
+        <P>Subscription plans are billed monthly in US Dollars ($) via secure encrypted PayFast payment gateway. By subscribing you agree to:</P>
         <Ul>
           <Li>Recurring monthly charges until cancellation</Li>
           <Li>Reading quotas as defined by your selected plan</Li>
@@ -83,5 +86,8 @@ export default function TermsScreen({ onBack }) {
       </Section>
 
     </LegalPage>
+    </>
   );
 }
+
+

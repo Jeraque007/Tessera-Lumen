@@ -1,9 +1,7 @@
 import { AppProvider, useApp } from "./context/AppContext.jsx";
-import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
-import AppFooter from "./components/AppFooter.jsx";
-import PrivacyConsent from "./components/PrivacyConsent.jsx";
 import InstallPrompt from "./components/InstallPrompt.jsx";
 import { routes } from "./routes/index.jsx";
 
@@ -19,7 +17,7 @@ function LoadingFallback() {
 }
 
 function Router() {
-  const { screen, goTo, setIsPaid, setDeeperPaid, user, refreshPaymentStatus, paymentLoading, paymentPending, setPaymentPending } = useApp();
+  const { screen, goTo, setIsPaid, setDeeperPaid, user, refreshPaymentStatus, paymentLoading, paymentPending, setPaymentPending, previousScreen } = useApp();
 
   // HMS COMPLIANCE: Ensure debug mode is DISABLED for release/audit.
   useEffect(() => {
@@ -157,7 +155,6 @@ function Router() {
 
   const renderScreen = () => {
     const Component = routes[screen] || routes["welcome"];
-    const { previousScreen } = useApp();
 
     // Special handling for screens that need props
     if (screen === "terms") return <Component onBack={() => goTo(previousScreen)} />;

@@ -27,23 +27,24 @@ export function BillingProvider({ children }) {
 
     try {
       // USD ONLY - currency conversion disabled
-      return;
-      const res = await fetch(apiUrl("/api/fx/rate"), {
-        signal: controller.signal
-      });
       clearTimeout(timeoutId);
+      return;
+      // const res = await fetch(apiUrl("/api/fx/rate"), {
+        // signal: controller.signal
+      // });
+      // clearTimeout(timeoutId);
 
-      if (res.ok) {
-        const data = await res.json();
-        setCurrencyData({
-          symbol: data.symbol || '$',
-          rate: data.rate || 1,
-          code: data.code || 'USD',
-          country: data.country || 'US'
-        });
-      }
-    } catch (e) {
-      console.warn("[Billing] FX fetch aborted or failed:", e.message);
+      // if (res.ok) {
+      //   const data = await res.json();
+      //   setCurrencyData({
+      //     symbol: data.symbol || '$',
+      //     rate: data.rate || 1,
+      //     code: data.code || 'USD',
+      //     country: data.country || 'US'
+      //   });
+      // }
+    } catch (_e) {
+      // FX fetch disabled
     }
   }, []);
 

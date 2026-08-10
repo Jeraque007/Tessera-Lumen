@@ -1,6 +1,10 @@
-const fs = require('fs');
-const path = require('path');
-const dns = require('dns').promises;
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dns from 'dns';
+const dnsPromises = dns.promises;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 console.log("==========================================");
 console.log("   VERIFY.963.CO.ZA - SYSTEM INTEGRITY CHECK");
@@ -63,14 +67,14 @@ if (fs.existsSync(backendEnvPath)) {
 async function runTests() {
     console.log("\n[CHECK] Testing DNS Resolution...");
     try {
-        const verifyIps = await dns.resolve4('verify.963.co.za');
+        const verifyIps = await dnsPromises.resolve4('verify.963.co.za');
         console.log(`[PASS] verify.963.co.za resolves to: ${verifyIps.join(', ')}`);
     } catch (err) {
         console.error(`[FAIL] Could not resolve verify.963.co.za: ${err.message}`);
     }
 
     try {
-        const appIps = await dns.resolve4('app.963.co.za');
+        const appIps = await dnsPromises.resolve4('app.963.co.za');
         console.log(`[PASS] app.963.co.za resolves to: ${appIps.join(', ')}`);
     } catch (err) {
         console.error(`[FAIL] Could not resolve app.963.co.za: ${err.message}`);

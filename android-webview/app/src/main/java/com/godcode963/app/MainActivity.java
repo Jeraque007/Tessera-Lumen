@@ -1,4 +1,4 @@
-﻿package com.godcode963.app;
+package com.godcode963.app;
 
 import android.Manifest;
 import android.app.Activity;

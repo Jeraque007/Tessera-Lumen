@@ -45,7 +45,7 @@ const ALLOWED_ORIGINS = [
 // Also allow Vercel preview deployments (dynamic subdomains)
 const isVercelPreview = (origin) => {
   if (!origin) return false;
-  return /^https:\/\/sophia-tarot[^\/]*\.vercel\.app/.test(origin);
+  return /^https:\/\/sophia-tarot[^/]*\.vercel\.app/.test(origin);
 };
 
 export const corsOptions = {

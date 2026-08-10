@@ -1,7 +1,8 @@
 import { AppProvider, useApp } from "./context/AppContext.jsx";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
+import PrivacyConsent from "./components/PrivacyConsent.jsx";
 import InstallPrompt from "./components/InstallPrompt.jsx";
 import { routes } from "./routes/index.jsx";
 

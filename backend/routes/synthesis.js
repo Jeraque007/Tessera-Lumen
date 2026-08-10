@@ -4,7 +4,7 @@ const router = Router();
 
 const POLLINATIONS_URL = "https://gen.pollinations.ai/v1/chat/completions";
 const MODEL = "openai";
-const API_KEY = process.env.POLLINATIONS_API_KEY || "sk_Rfn8nHy6JjnXiNbCEMv2vuVVqiMWEeCp";
+const API_KEY = process.env.POLLINATIONS_API_KEY;
 const CONTACT_EMAIL = "holistic@963.co.za";
 
 function buildWarningMailto(status, detail) {
